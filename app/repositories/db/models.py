@@ -151,7 +151,10 @@ class EventModel(Base):
     # Message ID of the creator's message (for updating event status)
     creator_message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
-    room: Mapped["RoomModel"] = relationship(back_populates="events")
+    room: Mapped["RoomModel"] = relationship(
+        back_populates="events",
+        foreign_keys="[EventModel.room_id]",
+    )
     participations: Mapped[list["ParticipationModel"]] = relationship(
         back_populates="event",
         cascade="all, delete-orphan",
