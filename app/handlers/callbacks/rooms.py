@@ -104,7 +104,7 @@ async def room_create_event_from_button(
     
     if cb.message:
         creator_message = f"{event_created_with_statuses(event_type, event_id)}\n\nУчастники:\n{member_statuses_text}"
-        creator_msg = await cb.message.answer(creator_message, parse_mode="Markdown")
+        creator_msg = await cb.message.answer(creator_message, parse_mode="Markdown", reply_markup=event_notification_kb(event_id))
         
         # Save creator_message_id in event for later updates
         async with uow:
