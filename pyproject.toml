@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vozmite-klima"
+version = "0.1.0"
+description = "Telegram bot: Возьмите Клима - synchronize short offline events between colleagues"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+  {name = "Возьмите Клима Contributors"}
+]
+keywords = ["telegram", "bot", "aiogram", "asyncio", "postgresql", "events"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: No Input/Output (Daemon)",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Natural Language :: Russian",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Communications :: Chat",
+]
+requires-python = ">=3.12"
+dependencies = [
+  "aiogram>=3.4.1",
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+  "SQLAlchemy>=2.0.25",
+  "asyncpg>=0.29.0",
+  "alembic>=1.13.1",
+  "psycopg2-binary>=2.9.9",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+  "pytest-asyncio>=0.21",
+  "pytest-cov>=4.1",
+  "ruff>=0.1",
+  "pyright>=1.1",
+  "pre-commit>=3.4",
+  "black>=23.11",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/bot_klima"
+Documentation = "https://github.com/yourusername/bot_klima#readme"
+Repository = "https://github.com/yourusername/bot_klima.git"
+Issues = "https://github.com/yourusername/bot_klima/issues"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+

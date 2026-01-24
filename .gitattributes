@@ -1,0 +1,48 @@
+# Auto normalize line endings
+* text=auto
+
+# Python
+*.py text eol=lf
+*.pyx text eol=lf
+*.pyi text eol=lf
+*.pyc binary
+*.pyo binary
+*.pyd binary
+
+# Bash
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Windows
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Docker
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+.dockerignore text eol=lf
+
+# Git
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Markdown
+*.md text eol=lf
+CHANGELOG.md text eol=lf
+README.md text eol=lf
+
+# JSON/YAML
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Config
+*.toml text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
+.env.example text eol=lf
+
+# Database
+*.sql text eol=lf
+*.sqlite binary
