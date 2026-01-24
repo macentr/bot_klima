@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from aiogram import Router
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
 
 from app.repositories.users import UserRepository
@@ -31,6 +31,24 @@ async def start_cmd(message: Message, uow: UnitOfWork) -> None:
     
     await message.answer(
         main_menu_greeting(vacation_status(user_vacation)),
+        reply_markup=main_menu_kb(vacation_status(user_vacation)),
+    )
+
+
+@router.message(Command("menu"))
+async def menu_cmd(message: Message, uow: UnitOfWork) -> None:
+    """Return to main menu from anywhere."""
+    user_vacation = UserGlobalStatus.ACTIVE
+    
+    async with uow:
+        assert uow.session is not None
+        user_repo = UserRepository(uow.session)
+        user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
+        if user:
+            user_vacation = user.global_status
+    
+    await message.answer(
+        "Главное меню:",
         reply_markup=main_menu_kb(vacation_status(user_vacation)),
     )
 
