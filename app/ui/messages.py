@@ -6,13 +6,22 @@ from app.domain.enums.event import ParticipationState, EventType
 from app.domain.enums.user import UserGlobalStatus
 
 
-def room_created(room_id: uuid.UUID) -> str:
-    return (
-        "✅ Room created.\n\n"
-        f"Room id: `{room_id}`\n"
-        "Invite colleagues by sending them:\n"
-        f"`/join {room_id}`"
-    )
+def room_created(room_id: uuid.UUID, invite_code: str | None = None) -> str:
+    msg = "✅ Room created.\n\n"
+    if invite_code:
+        msg += (
+            f"*Invite code:* `{invite_code}`\n\n"
+            "Colleagues can join using:\n"
+            f"`/join_invite {invite_code}`\n\n"
+            "Or enter it in the menu."
+        )
+    else:
+        msg += (
+            f"Room id: `{room_id}`\n"
+            "Invite colleagues by sending them:\n"
+            f"`/join {room_id}`"
+        )
+    return msg
 
 
 def joined_room(room_id: uuid.UUID) -> str:

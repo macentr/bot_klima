@@ -54,9 +54,14 @@ async def create_room_cmd(message: Message, uow: UnitOfWork) -> None:
         except DomainError as e:
             await message.answer(f"❌ {e}")
             return
+        
+        # Get the created room to retrieve invite code
+        room_repo = RoomRepository(uow.session)
+        room = await room_repo.require(room_id)
+        invite_code = room.invite_code
 
     await message.answer(
-        room_created(room_id),
+        room_created(room_id, invite_code),
         parse_mode="Markdown",
         reply_markup=room_detail_kb(room_id, is_owner=True),
     )
@@ -82,6 +87,34 @@ async def join_room_cmd(message: Message, uow: UnitOfWork) -> None:
         room_service = RoomService(RoomRepository(uow.session), RoomMemberRepository(uow.session))
         try:
             await room_service.join_room(room_id=room_id, user_id=message.from_user.id)  # type: ignore[union-attr]
+        except DomainError as e:
+            await message.answer(f"❌ {e}")
+            return
+
+    await message.answer(
+        joined_room(room_id),
+        reply_markup=room_detail_kb(room_id, is_owner=False),
+    )
+
+
+@router.message(Command("join_invite"))
+async def join_invite_cmd(message: Message, uow: UnitOfWork) -> None:
+    args = _parse_args(message)
+    if not args:
+        await message.answer("Usage: /join_invite <code>")
+        return
+    invite_code = args[0].strip().upper()
+
+    async with uow:
+        assert uow.session is not None
+        user_repo = UserRepository(uow.session)
+        await UserService(user_repo).upsert_from_telegram(message.from_user)  # type: ignore[arg-type]
+
+        room_service = RoomService(RoomRepository(uow.session), RoomMemberRepository(uow.session))
+        try:
+            room_id = await room_service.join_by_invite_code(
+                invite_code=invite_code, user_id=message.from_user.id  # type: ignore[union-attr]
+            )
         except DomainError as e:
             await message.answer(f"❌ {e}")
             return

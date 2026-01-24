@@ -23,12 +23,19 @@ class RoomRepository:
             raise NotFoundError(f"room {room_id} not found")
         return room
 
-    async def create(self, *, name: str, owner_id: int) -> RoomModel:
+    async def create(self, *, name: str, owner_id: int, invite_code: str | None = None) -> RoomModel:
         # Generate UUID on Python side so it's available before flush/commit.
-        room = RoomModel(id=uuid.uuid4(), name=name, owner_id=owner_id, state=RoomState.CREATED)
+        room = RoomModel(id=uuid.uuid4(), name=name, owner_id=owner_id, state=RoomState.CREATED, invite_code=invite_code)
         self._session.add(room)
         # Membership is created separately to keep transaction explicit in service.
         return room
+
+    async def get_by_invite_code(self, invite_code: str) -> RoomModel | None:
+        """Find room by invite code."""
+        res = await self._session.execute(
+            select(RoomModel).where(RoomModel.invite_code == invite_code.upper())
+        )
+        return res.scalar_one_or_none()
 
     async def set_state(self, room_id: uuid.UUID, *, state: RoomState) -> None:
         res = await self._session.execute(
