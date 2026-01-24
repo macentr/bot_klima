@@ -9,7 +9,9 @@ from app.domain.enums.event import ParticipationState
 from app.domain.exceptions import DomainError
 from app.repositories.events import EventRepository, ParticipationRepository
 from app.repositories.uow import UnitOfWork
-from app.ui.keyboards import EventActionCb, map_action_to_state
+from app.ui.keyboards import EventActionCb, map_action_to_state, MenuCb
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import InlineKeyboardMarkup
 
 
 router = Router(name="event_callbacks")
@@ -55,7 +57,6 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
         lines.append(f"{prefix} {user.display_name}")
 
     text = (
-        f"Event `{event_id}`\n\n"
         f"✅ Accepted: {counts[ParticipationState.ACCEPTED]}\n"
         f"🕒 Later: {counts[ParticipationState.LATER]}\n"
         f"❌ Declined: {counts[ParticipationState.DECLINED]}\n"
@@ -64,18 +65,27 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
         + "\n".join(lines)
     )
 
+    # Build keyboard with menu button
+    def _build_keyboard(show_refresh: bool = False) -> InlineKeyboardMarkup:
+        kb = InlineKeyboardBuilder()
+        if show_refresh:
+            kb.button(text="🔄 Refresh", callback_data=EventActionCb(event_id=event_id, action="refresh").pack())
+        kb.button(text="⬅️ Меню", callback_data=MenuCb(action="home").pack())
+        kb.adjust(1)
+        return kb.as_markup()
+
     # After a response, buttons should disappear (except Refresh is still useful).
-    # For MVP: if action was refresh, keep buttons; else remove keyboard.
+    # For MVP: if action was refresh, keep buttons; else show only menu button.
     if cb.message:
         if action == "refresh":
-            await cb.message.edit_text(text, parse_mode="Markdown", reply_markup=cb.message.reply_markup)
+            await cb.message.edit_text(text, parse_mode="Markdown", reply_markup=_build_keyboard(show_refresh=True))
         else:
-            await cb.message.edit_text(text, parse_mode="Markdown", reply_markup=None)
+            await cb.message.edit_text(text, parse_mode="Markdown", reply_markup=_build_keyboard(show_refresh=False))
     
     # Update creator's message if available
     if event.creator_message_id and event.creator_id != cb.from_user.id:
         member_statuses = "\n".join(lines) if lines else "No members"
-        creator_text = f"Event `{event_id}`\n\nУчастники:\n{member_statuses}"
+        creator_text = f"✅ Accepted: {counts[ParticipationState.ACCEPTED]}\n🕒 Later: {counts[ParticipationState.LATER]}\n❌ Declined: {counts[ParticipationState.DECLINED]}\n⏳ Pending: {counts[ParticipationState.PENDING]}\n🌴 Vacation: {counts[ParticipationState.VACATION]}\n\nУчастники:\n{member_statuses}"
         try:
             await bot.edit_message_text(
                 chat_id=event.creator_id,
