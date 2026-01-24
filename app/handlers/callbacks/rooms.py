@@ -17,7 +17,7 @@ from app.services.access import AccessControl
 from app.services.events import EventService
 from app.services.notifications import NotificationService
 from app.services.users import UserService
-from app.ui.keyboards import RoomEventCreateCb, RoomDeleteCb, ConfirmDeleteRoomCb, event_actions_kb, room_detail_kb, confirm_delete_room_kb
+from app.ui.keyboards import RoomEventCreateCb, RoomDeleteCb, ConfirmDeleteRoomCb, event_actions_kb, room_detail_kb, confirm_delete_room_kb, event_notification_kb
 from app.ui.messages import confirm_delete_room, room_deleted, event_created_with_statuses, event_notification_with_statuses, participation_label
 from app.services.rooms import RoomService
 
@@ -99,7 +99,7 @@ async def room_create_event_from_button(
     await notif.send_many(
         recipients,
         text=full_message,
-        reply_markup=event_actions_kb(event_id),
+        reply_markup=event_notification_kb(event_id),
     )
     
     if cb.message:
