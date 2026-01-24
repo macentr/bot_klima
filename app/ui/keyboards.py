@@ -95,16 +95,22 @@ def rooms_list_kb(room_ids: list[uuid.UUID], room_titles: list[str]) -> InlineKe
     return kb.as_markup()
 
 
-def room_detail_kb(room_id: uuid.UUID, is_owner: bool = False) -> InlineKeyboardMarkup:
+def room_detail_kb(room_id: uuid.UUID, is_owner: bool = False, open_event_id: uuid.UUID | None = None) -> InlineKeyboardMarkup:
     # Reuse event creation buttons + back to rooms
-    logger.debug(f"room_detail_kb called with room_id={room_id}, is_owner={is_owner}")
+    logger.debug(f"room_detail_kb called with room_id={room_id}, is_owner={is_owner}, open_event_id={open_event_id}")
     kb = InlineKeyboardBuilder()
-    for text, etype in [
-        ("🚬 SMOKE (5m)", EventType.SMOKE),
-        ("☕ COFFEE (5m)", EventType.COFFEE),
-        ("🚶 WALK (5m)", EventType.WALK),
-    ]:
-        kb.button(text=text, callback_data=RoomEventCreateCb(room_id=room_id, event_type=etype.value).pack())
+    
+    # If there's an open event, show button to return to it
+    if open_event_id:
+        kb.button(text="🔄 Вернуться к событию", callback_data=EventActionCb(event_id=open_event_id, action="refresh").pack())
+    else:
+        for text, etype in [
+            ("🚬 SMOKE (5m)", EventType.SMOKE),
+            ("☕ COFFEE (5m)", EventType.COFFEE),
+            ("🚶 WALK (5m)", EventType.WALK),
+        ]:
+            kb.button(text=text, callback_data=RoomEventCreateCb(room_id=room_id, event_type=etype.value).pack())
+    
     if is_owner:
         logger.debug(f"Adding delete button for owner")
         kb.button(text="🗑️ Delete Room", callback_data=RoomDeleteCb(room_id=room_id).pack())

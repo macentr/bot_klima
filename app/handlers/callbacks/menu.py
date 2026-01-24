@@ -9,6 +9,7 @@ from aiogram.types import CallbackQuery, Message
 from app.domain.exceptions import DomainError
 from app.repositories.rooms import RoomRepository
 from app.repositories.uow import UnitOfWork
+from app.repositories.rooms import RoomRepository
 from app.repositories.users import UserRepository
 from app.services.users import UserService
 from app.ui.keyboards import MenuCb, RoomOpenCb, main_menu_kb, room_detail_kb, rooms_list_kb
@@ -128,25 +129,39 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
 async def open_room(cb: CallbackQuery, callback_data: RoomOpenCb, uow: UnitOfWork) -> None:
     room_id = callback_data.room_id
     
-    # Check if user is owner
+    # Check if user is owner and if there's an open event
     is_owner = False
+    open_event_id = None
     async with uow:
         assert uow.session is not None
         from app.repositories.rooms import RoomMemberRepository
         from app.domain.enums.room import RoomRole
+        room_repo = RoomRepository(uow.session)
         room_members = RoomMemberRepository(uow.session)
         role = await room_members.get_role(room_id=room_id, user_id=cb.from_user.id)  # type: ignore[union-attr]
         is_owner = role == RoomRole.OWNER
+        
+        room = await room_repo.require(room_id)
+        open_event_id = room.open_event_id
+        
         import logging
         logger = logging.getLogger(__name__)
-        logger.debug(f"open_room: room_id={room_id}, user_id={cb.from_user.id}, role={role}, is_owner={is_owner}")
+        logger.debug(f"open_room: room_id={room_id}, user_id={cb.from_user.id}, role={role}, is_owner={is_owner}, open_event_id={open_event_id}")
     
     if cb.message:
-        await cb.message.edit_text(
-            f"Комната `{room_id}`\n\nВыберите событие для создания:",
-            parse_mode="Markdown",
-            reply_markup=room_detail_kb(room_id, is_owner=is_owner),
-        )
+        # If there's an open event, show option to return to it
+        if open_event_id:
+            await cb.message.edit_text(
+                f"Комната `{room_id}`\n\n📌 Есть активное событие",
+                parse_mode="Markdown",
+                reply_markup=room_detail_kb(room_id, is_owner=is_owner, open_event_id=open_event_id),
+            )
+        else:
+            await cb.message.edit_text(
+                f"Комната `{room_id}`\n\nВыберите событие для создания:",
+                parse_mode="Markdown",
+                reply_markup=room_detail_kb(room_id, is_owner=is_owner),
+            )
     await cb.answer()
 
 
