@@ -80,6 +80,7 @@ class RoomModel(Base):
         back_populates="room",
         cascade="all, delete-orphan",
         passive_deletes=True,
+        foreign_keys="[EventModel.room_id]",
     )
 
 
