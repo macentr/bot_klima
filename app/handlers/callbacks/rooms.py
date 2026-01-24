@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 
 from aiogram import Bot, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery
 
 from app.domain.enums.event import EventType
@@ -134,11 +135,15 @@ async def delete_room_prompt(cb: CallbackQuery, callback_data: RoomDeleteCb, uow
             return
 
     if cb.message:
-        await cb.message.edit_text(
-            confirm_delete_room(room_id),
-            parse_mode="Markdown",
-            reply_markup=confirm_delete_room_kb(room_id),
-        )
+        try:
+            await cb.message.edit_text(
+                confirm_delete_room(room_id),
+                parse_mode="Markdown",
+                reply_markup=confirm_delete_room_kb(room_id),
+            )
+        except TelegramBadRequest as e:
+            if "message is not modified" not in str(e):
+                raise
     await cb.answer()
 
 

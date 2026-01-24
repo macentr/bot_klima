@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from aiogram import Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
@@ -43,7 +44,11 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
 
     if action == "home":
         if cb.message:
-            await cb.message.edit_text("Главное меню:", reply_markup=main_menu_kb(user_status))
+            try:
+                await cb.message.edit_text("Главное меню:", reply_markup=main_menu_kb(user_status))
+            except TelegramBadRequest as e:
+                if "message is not modified" not in str(e):
+                    raise
         await cb.answer()
         return
 
@@ -52,30 +57,42 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
             assert uow.session is not None
             rooms = await RoomRepository(uow.session).list_rooms_for_user(user_id=cb.from_user.id)  # type: ignore[union-attr]
         if cb.message:
-            if not rooms:
-                await cb.message.edit_text(
-                    "У вас пока нет комнат. Создайте или вступите по UUID.",
-                    reply_markup=main_menu_kb(user_status),
-                )
-            else:
-                await cb.message.edit_text(
-                    "Ваши комнаты:",
-                    reply_markup=rooms_list_kb([r.id for r in rooms], [r.name for r in rooms]),
-                )
+            try:
+                if not rooms:
+                    await cb.message.edit_text(
+                        "У вас пока нет комнат. Создайте или вступите по UUID.",
+                        reply_markup=main_menu_kb(user_status),
+                    )
+                else:
+                    await cb.message.edit_text(
+                        "Ваши комнаты:",
+                        reply_markup=rooms_list_kb([r.id for r in rooms], [r.name for r in rooms]),
+                    )
+            except TelegramBadRequest as e:
+                if "message is not modified" not in str(e):
+                    raise
         await cb.answer()
         return
 
     if action == "create_room":
         await state.set_state(MenuStates.waiting_room_name)
         if cb.message:
-            await cb.message.edit_text("Введите название комнаты одним сообщением:")
+            try:
+                await cb.message.edit_text("Введите название комнаты одним сообщением:")
+            except TelegramBadRequest as e:
+                if "message is not modified" not in str(e):
+                    raise
         await cb.answer()
         return
 
     if action == "join_room":
         await state.set_state(MenuStates.waiting_room_uuid)
         if cb.message:
-            await cb.message.edit_text("Отправьте UUID комнаты одним сообщением:")
+            try:
+                await cb.message.edit_text("Отправьте UUID комнаты одним сообщением:")
+            except TelegramBadRequest as e:
+                if "message is not modified" not in str(e):
+                    raise
         await cb.answer()
         return
 
