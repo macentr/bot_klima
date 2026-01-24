@@ -92,6 +92,7 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
                 message_id=event.creator_message_id,
                 text=creator_text,
                 parse_mode="Markdown",
+                reply_markup=_build_keyboard(show_refresh=True),
             )
         except Exception:
             # Message might be deleted or unavailable
