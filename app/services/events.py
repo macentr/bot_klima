@@ -50,7 +50,21 @@ class EventService:
 
         room = await self._rooms.require(room_id)
         if str(room.state) != "ACTIVE":
-            raise ConflictError("events can exist only in ACTIVE rooms")
+            raise ConflictError("События можно создавать только в активных комнатах")
+
+        # Блокируем частое создание событий: не чаще одного раза в 5 минут.
+        last_event = await self._events.get_last_event_in_room(room_id)
+        if last_event is not None:
+            now = datetime.now(timezone.utc)
+            elapsed = now - last_event.created_at
+            cooldown = timedelta(minutes=5)
+            if elapsed < cooldown:
+                remaining = cooldown - elapsed
+                minutes_left = int(remaining.total_seconds() // 60)
+                seconds_left = int(remaining.total_seconds() % 60)
+                raise ConflictError(
+                    f"Новое событие можно создать через {minutes_left} мин {seconds_left} сек после предыдущего"
+                )
 
         close_at = None
         if auto_close_minutes is not None:
@@ -90,7 +104,7 @@ class EventService:
             return event.id
         except IntegrityError as e:
             # Partial unique index for OPEN per room.
-            raise ConflictError("there is already an OPEN event in this room") from e
+            raise ConflictError("В этой комнате уже есть открытое событие") from e
 
     async def respond(
         self,

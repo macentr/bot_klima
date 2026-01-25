@@ -20,7 +20,7 @@ class RoomRepository:
     async def require(self, room_id: uuid.UUID) -> RoomModel:
         room = await self.get(room_id)
         if room is None:
-            raise NotFoundError(f"room {room_id} not found")
+            raise NotFoundError(f"Комната {room_id} не найдена")
         return room
 
     async def create(self, *, name: str, owner_id: int, invite_code: str | None = None) -> RoomModel:
@@ -42,7 +42,7 @@ class RoomRepository:
             update(RoomModel).where(RoomModel.id == room_id).values(state=state)
         )
         if res.rowcount == 0:
-            raise NotFoundError(f"room {room_id} not found")
+            raise NotFoundError(f"Комната {room_id} не найдена")
 
     async def delete_room(self, room_id: uuid.UUID) -> None:
         await self._session.execute(delete(RoomModel).where(RoomModel.id == room_id))
@@ -81,7 +81,7 @@ class RoomMemberRepository:
         """
         existing = await self._session.get(RoomMemberModel, {"room_id": room_id, "user_id": user_id})
         if existing is not None:
-            raise ConflictError("user already a member of room")
+            raise ConflictError("Пользователь уже состоит в комнате")
         m = RoomMemberModel(room_id=room_id, user_id=user_id, role=role)
         self._session.add(m)
         return m

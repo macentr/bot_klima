@@ -57,11 +57,11 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
         lines.append(f"{prefix} {user.display_name}")
 
     text = (
-        f"✅ Accepted: {counts[ParticipationState.ACCEPTED]}\n"
-        f"🕒 Later: {counts[ParticipationState.LATER]}\n"
-        f"❌ Declined: {counts[ParticipationState.DECLINED]}\n"
-        f"⏳ Pending: {counts[ParticipationState.PENDING]}\n"
-        f"🌴 Vacation: {counts[ParticipationState.VACATION]}\n\n"
+        f"✅ Пойдут: {counts[ParticipationState.ACCEPTED]}\n"
+        f"🕒 Позже: {counts[ParticipationState.LATER]}\n"
+        f"❌ Не пойдут: {counts[ParticipationState.DECLINED]}\n"
+        f"⏳ Без ответа: {counts[ParticipationState.PENDING]}\n"
+        f"🌴 В отпуске: {counts[ParticipationState.VACATION]}\n\n"
         + "\n".join(lines)
     )
 
@@ -69,7 +69,7 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
     def _build_keyboard(show_refresh: bool = False) -> InlineKeyboardMarkup:
         kb = InlineKeyboardBuilder()
         if show_refresh:
-            kb.button(text="🔄 Refresh", callback_data=EventActionCb(event_id=event_id, action="refresh").pack())
+            kb.button(text="🔄 Обновить", callback_data=EventActionCb(event_id=event_id, action="refresh").pack())
         kb.button(text="⬅️ Меню", callback_data=MenuCb(action="home").pack())
         kb.adjust(1)
         return kb.as_markup()
@@ -84,8 +84,15 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
     
     # Update creator's message if available
     if event.creator_message_id and event.creator_id != cb.from_user.id:
-        member_statuses = "\n".join(lines) if lines else "No members"
-        creator_text = f"✅ Accepted: {counts[ParticipationState.ACCEPTED]}\n🕒 Later: {counts[ParticipationState.LATER]}\n❌ Declined: {counts[ParticipationState.DECLINED]}\n⏳ Pending: {counts[ParticipationState.PENDING]}\n🌴 Vacation: {counts[ParticipationState.VACATION]}\n\nУчастники:\n{member_statuses}"
+        member_statuses = "\n".join(lines) if lines else "Нет участников"
+        creator_text = (
+            f"✅ Пойдут: {counts[ParticipationState.ACCEPTED]}\n"
+            f"🕒 Позже: {counts[ParticipationState.LATER]}\n"
+            f"❌ Не пойдут: {counts[ParticipationState.DECLINED]}\n"
+            f"⏳ Без ответа: {counts[ParticipationState.PENDING]}\n"
+            f"🌴 В отпуске: {counts[ParticipationState.VACATION]}\n\n"
+            f"Участники:\n{member_statuses}"
+        )
         try:
             await bot.edit_message_text(
                 chat_id=event.creator_id,
@@ -98,5 +105,5 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
             # Message might be deleted or unavailable
             pass
     
-    await cb.answer("OK")
+    await cb.answer("Готово")
 

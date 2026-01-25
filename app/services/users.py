@@ -11,7 +11,7 @@ class UserService:
         self._users = users
 
     async def upsert_from_telegram(self, tg_user: TgUser) -> None:
-        display_name = " ".join(x for x in [tg_user.first_name, tg_user.last_name] if x) or "Unknown"
+        display_name = " ".join(x for x in [tg_user.first_name, tg_user.last_name] if x) or "Неизвестно"
         await self._users.upsert(
             tg_user.id,
             username=tg_user.username,

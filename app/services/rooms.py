@@ -25,16 +25,16 @@ class RoomService:
     async def join_room(self, *, room_id: uuid.UUID, user_id: int) -> None:
         room = await self._rooms.require(room_id)
         if room.state != RoomState.ACTIVE:
-            raise ConflictError("room is not active")
+            raise ConflictError("Комната не активна")
         await self._members.upsert_member(room_id=room_id, user_id=user_id, role=RoomRole.MEMBER)
 
     async def join_by_invite_code(self, *, invite_code: str, user_id: int) -> uuid.UUID:
         """Join room using invite code."""
         room = await self._rooms.get_by_invite_code(invite_code)
         if room is None:
-            raise ConflictError("invalid invite code")
+            raise ConflictError("Неверный код приглашения")
         if room.state != RoomState.ACTIVE:
-            raise ConflictError("room is not active")
+            raise ConflictError("Комната не активна")
         await self._members.upsert_member(room_id=room.id, user_id=user_id, role=RoomRole.MEMBER)
         return room.id
 
@@ -43,6 +43,6 @@ class RoomService:
         room = await self._rooms.require(room_id)
         role = await self._members.get_role(room_id=room_id, user_id=user_id)
         if role != RoomRole.OWNER:
-            raise AccessDeniedError("only room owner can delete room")
+            raise AccessDeniedError("Только владелец комнаты может её удалить")
         await self._rooms.delete_room(room_id)
 

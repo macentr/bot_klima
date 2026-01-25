@@ -18,7 +18,7 @@ class UserRepository:
     async def require(self, telegram_id: int) -> UserModel:
         user = await self.get(telegram_id)
         if user is None:
-            raise NotFoundError(f"user {telegram_id} not found")
+            raise NotFoundError(f"Пользователь {telegram_id} не найден")
         return user
 
     async def upsert(
@@ -54,7 +54,7 @@ class UserRepository:
             .values(global_status=status, vacation_until=vacation_until)
         )
         if res.rowcount == 0:
-            raise NotFoundError(f"user {telegram_id} not found")
+            raise NotFoundError(f"Пользователь {telegram_id} не найден")
 
     async def list_active_ids(self) -> list[int]:
         res = await self._session.execute(

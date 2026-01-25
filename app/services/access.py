@@ -25,8 +25,8 @@ class AccessControl:
     ) -> RoomRole:
         role = await self._room_members.get_role(room_id=room_id, user_id=user_id)
         if role is None:
-            raise AccessDeniedError(f"not a member: {action}")
+            raise AccessDeniedError(f"Вы не состоите в комнате — действие {action} недоступно")
         if role not in allowed:
-            raise AccessDeniedError(f"forbidden: {action}")
+            raise AccessDeniedError(f"Недостаточно прав для действия: {action}")
         return role
 

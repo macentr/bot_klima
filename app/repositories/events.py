@@ -22,8 +22,17 @@ class EventRepository:
     async def require(self, event_id: uuid.UUID) -> EventModel:
         e = await self.get(event_id)
         if e is None:
-            raise NotFoundError(f"event {event_id} not found")
+            raise NotFoundError(f"Событие {event_id} не найдено")
         return e
+
+    async def get_last_event_in_room(self, room_id: uuid.UUID) -> EventModel | None:
+        res = await self._session.execute(
+            select(EventModel)
+            .where(EventModel.room_id == room_id)
+            .order_by(EventModel.created_at.desc())
+            .limit(1)
+        )
+        return res.scalar_one_or_none()
 
     async def find_open_in_room(self, room_id: uuid.UUID) -> EventModel | None:
         res = await self._session.execute(
@@ -61,7 +70,7 @@ class EventRepository:
             .values(state=EventState.CLOSED)
         )
         if res.rowcount == 0:
-            raise NotFoundError(f"event {event_id} not found or already closed")
+            raise NotFoundError(f"Событие {event_id} не найдено или уже закрыто")
 
     async def list_expired_open_events(self, *, now: datetime | None = None, limit: int = 100) -> list[uuid.UUID]:
         now = now or datetime.now(timezone.utc)
@@ -84,10 +93,10 @@ class EventRepository:
         res = await self._session.execute(select(RoomModel.state).where(RoomModel.id == room_id))
         state = res.scalar_one_or_none()
         if state is None:
-            raise NotFoundError(f"room {room_id} not found")
+            raise NotFoundError(f"Комната {room_id} не найдена")
         # RoomState is imported in service layer; here we just compare string to avoid import cycle.
         if str(state) != "ACTIVE":
-            raise ConflictError("events can exist only in ACTIVE rooms")
+            raise ConflictError("События можно создавать только в активных комнатах")
 
 
 class ParticipationRepository:
@@ -145,9 +154,9 @@ class ParticipationRepository:
         """
         p = await self._session.get(ParticipationModel, {"event_id": event_id, "user_id": user_id})
         if p is None:
-            raise NotFoundError("participation not found")
+            raise NotFoundError("Участие не найдено")
         if p.state == ParticipationState.VACATION and new_state != ParticipationState.VACATION:
-            raise ConflictError("vacation user cannot change participation state")
+            raise ConflictError("Пользователь в отпуске не может менять статус участия")
         p.state = new_state
         return p.state
 
