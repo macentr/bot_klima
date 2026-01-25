@@ -81,18 +81,18 @@ async def room_create_event_from_button(
         # Build member list with statuses
         member_list = []
         recipients: list[int] = []
-        
+
         for participation, user in participants_with_users:
-            display_name = user.display_name or f"User {user.id}"
+            display_name = user.display_name or f"Пользователь {user.id}"
             member_list.append(f"{display_name}: {participation_label(participation.state)}")
-            
+
             # Add to recipients if active, not creator, and not in vacation
             if participation.user_id != cb.from_user.id and user.global_status == UserGlobalStatus.ACTIVE:  # type: ignore[union-attr]
                 recipients.append(participation.user_id)
 
     # Send notification to other members with event info and member statuses
     notif = NotificationService(bot)
-    member_statuses_text = "\n".join(member_list) if member_list else "No members"
+    member_statuses_text = "\n".join(member_list) if member_list else "Нет участников"
     event_message = event_notification_with_statuses(room.name, event_type, event_id)
     full_message = f"{event_message}\n\nУчастники:\n{member_statuses_text}"
     
@@ -127,7 +127,7 @@ async def room_create_event_from_button(
                 await cb.message.delete()
         except Exception:
             pass
-    await cb.answer("OK")
+    await cb.answer("Готово")
 
 
 @router.callback_query(RoomDeleteCb.filter())
@@ -140,11 +140,11 @@ async def delete_room_prompt(cb: CallbackQuery, callback_data: RoomDeleteCb, uow
         room_members = RoomMemberRepository(uow.session)
         role = await room_members.get_role(room_id=room_id, user_id=cb.from_user.id)  # type: ignore[union-attr]
         if role is None:
-            await cb.answer("❌ You are not a member of this room", show_alert=True)
+            await cb.answer("❌ Вы не участник этой комнаты", show_alert=True)
             return
         from app.domain.enums.room import RoomRole
         if role != RoomRole.OWNER:
-            await cb.answer("❌ Only owner can delete room", show_alert=True)
+            await cb.answer("❌ Только владелец может удалить комнату", show_alert=True)
             return
 
     if cb.message:
@@ -173,7 +173,7 @@ async def confirm_delete_room_action(cb: CallbackQuery, callback_data: ConfirmDe
                 parse_mode="Markdown",
                 reply_markup=room_detail_kb(room_id, is_owner=True),
             )
-        await cb.answer("Deletion cancelled")
+        await cb.answer("Удаление отменено")
         return
 
     async with uow:
@@ -209,5 +209,5 @@ async def confirm_delete_room_action(cb: CallbackQuery, callback_data: ConfirmDe
             room_deleted(),
             reply_markup=main_menu_kb(vacation_status(user_status_text)),
         )
-    await cb.answer("✅ Room deleted")
+    await cb.answer("✅ Комната удалена")
 

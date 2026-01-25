@@ -7,38 +7,38 @@ from app.domain.enums.user import UserGlobalStatus
 
 
 def room_created(room_id: uuid.UUID, invite_code: str | None = None) -> str:
-    msg = "✅ Room created.\n\n"
+    msg = "✅ Комната создана.\n\n"
     if invite_code:
         msg += (
-            f"*Invite code:* `{invite_code}`\n\n"
-            "Colleagues can join using:\n"
+            f"Пригласительный код: `{invite_code}`\n\n"
+            "Коллеги могут вступить командой:\n"
             f"`/join_invite {invite_code}`\n\n"
-            "Or enter it in the menu."
+            "Или отправив код в меню."
         )
     else:
         msg += (
-            f"Room id: `{room_id}`\n"
-            "Invite colleagues by sending them:\n"
+            f"ID комнаты: `{room_id}`\n"
+            "Пригласите коллег командой:\n"
             f"`/join {room_id}`"
         )
     return msg
 
 
 def joined_room(room_id: uuid.UUID) -> str:
-    return f"✅ Joined room `{room_id}`"
+    return f"✅ Вы вступили в комнату `{room_id}`"
 
 
 def event_created(event_id: uuid.UUID) -> str:
-    return f"🚬 Event created: `{event_id}`"
+    return f"📌 Событие создано: `{event_id}`"
 
 
 def participation_label(state: ParticipationState) -> str:
     return {
-        ParticipationState.PENDING: "⏳ Pending",
-        ParticipationState.ACCEPTED: "✅ Accepted",
-        ParticipationState.LATER: "🕒 Later",
-        ParticipationState.DECLINED: "❌ Declined",
-        ParticipationState.VACATION: "🌴 Vacation",
+        ParticipationState.PENDING: "⏳ Ожидает",
+        ParticipationState.ACCEPTED: "✅ Пойду",
+        ParticipationState.LATER: "🕒 Позже",
+        ParticipationState.DECLINED: "❌ Не смогу",
+        ParticipationState.VACATION: "🌴 В отпуске",
     }[state]
 
 
@@ -64,18 +64,18 @@ def main_menu_greeting(vacation_status: str) -> str:
 
 def event_created_with_statuses(event_type: EventType, event_id: uuid.UUID) -> str:
     """Format event creation message with type name."""
-    return f"✅ Событие '{event_type_display(event_type)}' создано!\n\nID: `{event_id}`"
+    return f"✅ Событие «{event_type_display(event_type)}» создано!\n\nID: `{event_id}`"
 
 
 def event_notification_with_statuses(room_name: str, event_type: EventType, event_id: uuid.UUID) -> str:
     """Format notification about new event."""
-    return f"📣 В комнате '{room_name}' создано событие {event_type_display(event_type)}\n\nID: `{event_id}`"
+    return f"📣 В комнате «{room_name}» создано событие {event_type_display(event_type)}\n\nID: `{event_id}`"
 
 
 def confirm_delete_room(room_id: uuid.UUID) -> str:
-    return f"⚠️ Are you sure you want to delete room `{room_id}`? This action cannot be undone."
+    return f"⚠️ Удалить комнату `{room_id}`? Действие необратимо."
 
 
 def room_deleted() -> str:
-    return "✅ Room has been deleted."
+    return "✅ Комната удалена."
 

@@ -61,7 +61,7 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
             try:
                 if not rooms:
                     await cb.message.edit_text(
-                        "У вас пока нет комнат. Создайте или вступите по UUID.",
+                        "У вас пока нет комнат. Создайте или вступите по коду/UUID.",
                         reply_markup=main_menu_kb(user_status),
                     )
                 else:
@@ -90,7 +90,7 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
         await state.set_state(MenuStates.waiting_room_uuid)
         if cb.message:
             try:
-                await cb.message.edit_text("Отправьте UUID комнаты одним сообщением:")
+                await cb.message.edit_text("Отправьте UUID комнаты или код приглашения одним сообщением:")
             except TelegramBadRequest as e:
                 if "message is not modified" not in str(e):
                     raise
@@ -115,14 +115,14 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
             except DomainError as e:
                 await cb.answer(f"❌ {e}", show_alert=True)
                 return
-        await cb.answer("OK")
+        await cb.answer("Готово")
         if cb.message:
             # Reload status after change
             new_status = await get_user_vacation_status(cb.from_user.id, uow)  # type: ignore[union-attr]
             await cb.message.edit_text("Главное меню:", reply_markup=main_menu_kb(new_status))
         return
 
-    await cb.answer("Unknown action", show_alert=True)
+    await cb.answer("Неизвестное действие", show_alert=True)
 
 
 @router.callback_query(RoomOpenCb.filter())
@@ -149,19 +149,11 @@ async def open_room(cb: CallbackQuery, callback_data: RoomOpenCb, uow: UnitOfWor
         logger.debug(f"open_room: room_id={room_id}, user_id={cb.from_user.id}, role={role}, is_owner={is_owner}, open_event_id={open_event_id}")
     
     if cb.message:
-        # If there's an open event, show option to return to it
-        if open_event_id:
-            await cb.message.edit_text(
-                f"Комната `{room_id}`\n\n📌 Есть активное событие",
-                parse_mode="Markdown",
-                reply_markup=room_detail_kb(room_id, is_owner=is_owner, open_event_id=open_event_id),
-            )
-        else:
-            await cb.message.edit_text(
-                f"Комната `{room_id}`\n\nВыберите событие для создания:",
-                parse_mode="Markdown",
-                reply_markup=room_detail_kb(room_id, is_owner=is_owner),
-            )
+        await cb.message.edit_text(
+            f"Комната `{room_id}`\n\nМожно создать новое событие или вернуться к последнему.",
+            parse_mode="Markdown",
+            reply_markup=room_detail_kb(room_id, is_owner=is_owner, open_event_id=open_event_id),
+        )
     await cb.answer()
 
 

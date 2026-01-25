@@ -24,7 +24,7 @@ async def vacation_on(message: Message, uow: UnitOfWork) -> None:
         except DomainError as e:
             await message.answer(f"❌ {e}")
             return
-    await message.answer("🌴 Vacation enabled. You will not receive event notifications.")
+    await message.answer("🌴 Режим отпуска включен. Уведомления о событиях приходить не будут.")
 
 
 @router.message(Command("vacation_off"))
@@ -38,5 +38,5 @@ async def vacation_off(message: Message, uow: UnitOfWork) -> None:
         except DomainError as e:
             await message.answer(f"❌ {e}")
             return
-    await message.answer("✅ Vacation disabled.")
+    await message.answer("✅ Режим отпуска выключен.")
 

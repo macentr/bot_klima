@@ -31,19 +31,19 @@ def _parse_args(message: Message) -> list[str]:
 async def create_event_cmd(message: Message, bot: Bot, uow: UnitOfWork) -> None:
     args = _parse_args(message)
     if len(args) < 2:
-        await message.answer("Usage: /event <room_uuid> <SMOKE|COFFEE|WALK|CUSTOM> [auto_close_minutes]")
+        await message.answer("Использование: /event <room_uuid> <SMOKE|COFFEE|WALK|CUSTOM> [auto_close_minutes]")
         return
 
     try:
         room_id = uuid.UUID(args[0])
     except ValueError:
-        await message.answer("Invalid room id.")
+        await message.answer("Некорректный ID комнаты.")
         return
 
     try:
         event_type = EventType(args[1].upper())
     except ValueError:
-        await message.answer("Invalid event type.")
+        await message.answer("Некорректный тип события.")
         return
 
     auto_close_minutes: int | None = None
@@ -51,7 +51,7 @@ async def create_event_cmd(message: Message, bot: Bot, uow: UnitOfWork) -> None:
         try:
             auto_close_minutes = int(args[2])
         except ValueError:
-            await message.answer("auto_close_minutes must be an integer.")
+            await message.answer("auto_close_minutes должен быть числом.")
             return
 
     async with uow:
@@ -100,8 +100,8 @@ async def create_event_cmd(message: Message, bot: Bot, uow: UnitOfWork) -> None:
     notif = NotificationService(bot)
     await notif.send_many(
         recipients,
-        text=f"📣 New event in room `{room_id}`: `{event_id}`",
+        text=f"📣 Новое событие в комнате `{room_id}`: `{event_id}`",
         reply_markup=event_actions_kb(event_id),
     )
-    await message.answer(f"✅ Event `{event_id}` created.", parse_mode="Markdown")
+    await message.answer(f"✅ Событие `{event_id}` создано.", parse_mode="Markdown")
 

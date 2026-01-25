@@ -31,11 +31,11 @@ def _parse_args(message: Message) -> list[str]:
 async def create_room_cmd(message: Message, uow: UnitOfWork) -> None:
     args = _parse_args(message)
     if not args:
-        await message.answer("Usage: /create_room <name>")
+        await message.answer("Использование: /create_room <название>")
         return
     name = " ".join(args).strip()
     if not name:
-        await message.answer("Room name is required.")
+        await message.answer("Нужно указать название комнаты.")
         return
 
     async with uow:
@@ -71,12 +71,12 @@ async def create_room_cmd(message: Message, uow: UnitOfWork) -> None:
 async def join_room_cmd(message: Message, uow: UnitOfWork) -> None:
     args = _parse_args(message)
     if not args:
-        await message.answer("Usage: /join <room_uuid>")
+        await message.answer("Использование: /join <room_uuid>")
         return
     try:
         room_id = uuid.UUID(args[0])
     except ValueError:
-        await message.answer("Invalid room id.")
+        await message.answer("Некорректный ID комнаты.")
         return
 
     async with uow:
@@ -101,7 +101,7 @@ async def join_room_cmd(message: Message, uow: UnitOfWork) -> None:
 async def join_invite_cmd(message: Message, uow: UnitOfWork) -> None:
     args = _parse_args(message)
     if not args:
-        await message.answer("Usage: /join_invite <code>")
+        await message.answer("Использование: /join_invite <код>")
         return
     invite_code = args[0].strip().upper()
 
