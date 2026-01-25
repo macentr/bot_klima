@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from aiogram import Bot, Router
 from aiogram.types import CallbackQuery
@@ -58,12 +58,14 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
         }[part.state]
         lines.append(f"{prefix} {user.display_name}")
 
-    # Format creation time
-    created_time = event.created_at.strftime("%H:%M")
+    # Format creation time in MSK (UTC+3)
+    msk_tz = timezone(timedelta(hours=3))
+    created_time_msk = event.created_at.astimezone(msk_tz)
+    created_time = created_time_msk.strftime("%H:%M")
     event_name = event_type_display(event.type)
     
     text = (
-        f"📌 **{event_name}** (создано в {created_time})\n\n"
+           f"📌 **{event_name}** (создано в {created_time} МСК)\n\n"
         f"✅ Пойдут: {counts[ParticipationState.ACCEPTED]}\n"
         f"🕒 Позже: {counts[ParticipationState.LATER]}\n"
         f"❌ Не пойдут: {counts[ParticipationState.DECLINED]}\n"
@@ -98,7 +100,7 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
     if event.creator_message_id and event.creator_id != cb.from_user.id:
         member_statuses = "\n".join(lines) if lines else "Нет участников"
         creator_text = (
-            f"📌 **{event_name}** (создано в {created_time})\n\n"
+              f"📌 **{event_name}** (создано в {created_time} МСК)\n\n"
             f"✅ Пойдут: {counts[ParticipationState.ACCEPTED]}\n"
             f"🕒 Позже: {counts[ParticipationState.LATER]}\n"
             f"❌ Не пойдут: {counts[ParticipationState.DECLINED]}\n"
