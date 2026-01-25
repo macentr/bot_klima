@@ -194,7 +194,6 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
     )
     await message.answer(
         room_invite_share(bot_username, room_id, invite_code),
-        parse_mode="Markdown",
     )
 
 

@@ -71,7 +71,6 @@ async def create_room_cmd(message: Message, uow: UnitOfWork, bot: Bot) -> None:
     )
     await message.answer(
         room_invite_share(bot_username, room_id, invite_code),
-        parse_mode="Markdown",
     )
     logger.debug(f"create_room_cmd: Created room {room_id}, sent keyboard with is_owner=True")
 

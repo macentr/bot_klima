@@ -77,10 +77,15 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
     # After a response, buttons should disappear (except Refresh is still useful).
     # For MVP: if action was refresh, keep buttons; else show only menu button.
     if cb.message:
-        if action == "refresh":
-            await cb.message.edit_text(text, parse_mode="Markdown", reply_markup=_build_keyboard(show_refresh=True))
-        else:
-            await cb.message.edit_text(text, parse_mode="Markdown", reply_markup=_build_keyboard(show_refresh=False))
+        from aiogram.exceptions import TelegramBadRequest
+        try:
+            if action == "refresh":
+                await cb.message.edit_text(text, parse_mode="Markdown", reply_markup=_build_keyboard(show_refresh=True))
+            else:
+                await cb.message.edit_text(text, parse_mode="Markdown", reply_markup=_build_keyboard(show_refresh=False))
+        except TelegramBadRequest as e:
+            if "message is not modified" not in str(e):
+                raise
     
     # Update creator's message if available
     if event.creator_message_id and event.creator_id != cb.from_user.id:
