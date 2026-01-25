@@ -6,22 +6,8 @@ from app.domain.enums.event import ParticipationState, EventType
 from app.domain.enums.user import UserGlobalStatus
 
 
-def room_created(room_id: uuid.UUID, invite_code: str | None = None) -> str:
-    msg = "✅ Комната создана.\n\n"
-    if invite_code:
-        msg += (
-            f"Пригласительный код: `{invite_code}`\n\n"
-            "Коллеги могут вступить командой:\n"
-            f"`/join_invite {invite_code}`\n\n"
-            "Или отправив код в меню."
-        )
-    else:
-        msg += (
-            f"ID комнаты: `{room_id}`\n"
-            "Пригласите коллег командой:\n"
-            f"`/join {room_id}`"
-        )
-    return msg
+def room_created(room_id: uuid.UUID, room_name: str) -> str:
+    return f"✅ Комната **{room_name}** создана!\n\nВаше приглашение для коллег придёт следующим сообщением — просто перешлите его."
 
 
 def joined_room(room_id: uuid.UUID) -> str:
@@ -115,20 +101,24 @@ def help_message() -> str:
     )
 
 
-def room_invite_share(bot_username: str, room_id: uuid.UUID, invite_code: str | None) -> str:
+def room_invite_share(bot_username: str, room_id: uuid.UUID, room_name: str, invite_code: str | None) -> str:
     bot_link = f"https://t.me/{bot_username}" if bot_username else "бот"
     if invite_code:
         return (
-            "Перешлите это сообщение коллегам, чтобы подключить их к боту и комнате.\n\n"
-            f"1) Откройте бота: {bot_link}\n"
-            f"2) Введите команду: /join_invite {invite_code}\n"
-            "   или отправьте код в меню.\n\n"
-            "Если не сработало, можно использовать UUID комнаты:\n"
+            f"📩 **Приглашение в комнату \"{room_name}\"**\n\n"
+            "🔹 Перешлите это сообщение коллегам\n\n"
+            f"1️⃣ Откройте бота: {bot_link}\n"
+            f"2️⃣ Нажмите на команду ниже (скопируется автоматически):\n"
+            f"/join_invite {invite_code}\n\n"
+            f"💡 Альтернатива — отправьте код `{invite_code}` в меню бота\n\n"
+            f"⚙️ Резервный вариант (UUID):\n"
             f"/join {room_id}"
         )
     return (
-        "Перешлите это сообщение коллегам, чтобы подключить их к боту и комнате.\n\n"
-        f"1) Откройте бота: {bot_link}\n"
-        f"2) Введите команду: /join {room_id}"
+        f"📩 **Приглашение в комнату \"{room_name}\"**\n\n"
+        "🔹 Перешлите это сообщение коллегам\n\n"
+        f"1️⃣ Откройте бота: {bot_link}\n"
+        f"2️⃣ Нажмите на команду ниже:\n"
+        f"/join {room_id}"
     )
 

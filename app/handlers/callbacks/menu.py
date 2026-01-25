@@ -182,18 +182,20 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
         room_repo = RoomRepository(uow.session)
         room = await room_repo.require(room_id)
         invite_code = room.invite_code
+        room_name = room.name
 
         me = await bot.get_me()
         bot_username = me.username or ""
 
     await state.clear()
     await message.answer(
-        room_created(room_id, invite_code),
+        room_created(room_id, room_name),
         parse_mode="Markdown",
         reply_markup=room_detail_kb(room_id, is_owner=True),
     )
     await message.answer(
-        room_invite_share(bot_username, room_id, invite_code),
+        room_invite_share(bot_username, room_id, room_name, invite_code),
+        parse_mode="Markdown",
     )
 
 
