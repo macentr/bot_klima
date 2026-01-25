@@ -79,3 +79,21 @@ def confirm_delete_room(room_id: uuid.UUID) -> str:
 def room_deleted() -> str:
     return "✅ Комната удалена."
 
+
+def room_invite_share(bot_username: str, room_id: uuid.UUID, invite_code: str | None) -> str:
+    bot_link = f"https://t.me/{bot_username}" if bot_username else "бот"
+    if invite_code:
+        return (
+            "Перешлите это сообщение коллегам, чтобы подключить их к боту и комнате.\n\n"
+            f"1) Откройте бота: {bot_link}\n"
+            f"2) Введите команду: `/join_invite {invite_code}`\n"
+            "   или отправьте код в меню.\n\n"
+            "Если не сработало, можно использовать UUID комнаты:\n"
+            f"`/join {room_id}`"
+        )
+    return (
+        "Перешлите это сообщение коллегам, чтобы подключить их к боту и комнате.\n\n"
+        f"1) Откройте бота: {bot_link}\n"
+        f"2) Введите команду: `/join {room_id}`"
+    )
+

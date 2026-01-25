@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 import logging
 
-from aiogram import Router
+from aiogram import Bot, Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
@@ -13,7 +13,7 @@ from app.repositories.users import UserRepository
 from app.repositories.uow import UnitOfWork
 from app.services.rooms import RoomService
 from app.services.users import UserService
-from app.ui.messages import joined_room, room_created
+from app.ui.messages import joined_room, room_created, room_invite_share
 from app.ui.keyboards import room_detail_kb
 
 
@@ -28,7 +28,7 @@ def _parse_args(message: Message) -> list[str]:
 
 
 @router.message(Command("create_room"))
-async def create_room_cmd(message: Message, uow: UnitOfWork) -> None:
+async def create_room_cmd(message: Message, uow: UnitOfWork, bot: Bot) -> None:
     args = _parse_args(message)
     if not args:
         await message.answer("Использование: /create_room <название>")
@@ -60,10 +60,17 @@ async def create_room_cmd(message: Message, uow: UnitOfWork) -> None:
         room = await room_repo.require(room_id)
         invite_code = room.invite_code
 
+        me = await bot.get_me()
+        bot_username = me.username or ""
+
     await message.answer(
         room_created(room_id, invite_code),
         parse_mode="Markdown",
         reply_markup=room_detail_kb(room_id, is_owner=True),
+    )
+    await message.answer(
+        room_invite_share(bot_username, room_id, invite_code),
+        parse_mode="Markdown",
     )
     logger.debug(f"create_room_cmd: Created room {room_id}, sent keyboard with is_owner=True")
 

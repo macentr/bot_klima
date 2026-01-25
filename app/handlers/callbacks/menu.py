@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from aiogram import Router
+from aiogram import Bot, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -9,11 +9,10 @@ from aiogram.types import CallbackQuery, Message
 from app.domain.exceptions import DomainError
 from app.repositories.rooms import RoomRepository
 from app.repositories.uow import UnitOfWork
-from app.repositories.rooms import RoomRepository
 from app.repositories.users import UserRepository
 from app.services.users import UserService
 from app.ui.keyboards import MenuCb, RoomOpenCb, main_menu_kb, room_detail_kb, rooms_list_kb
-from app.ui.messages import vacation_status
+from app.ui.messages import vacation_status, room_created, room_invite_share
 from app.domain.enums.user import UserGlobalStatus
 
 
@@ -158,7 +157,7 @@ async def open_room(cb: CallbackQuery, callback_data: RoomOpenCb, uow: UnitOfWor
 
 
 @router.message(MenuStates.waiting_room_name)
-async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMContext) -> None:
+async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMContext, bot: Bot) -> None:
     name = (message.text or "").strip()
     if not name:
         await message.answer("Название не может быть пустым. Введите ещё раз:")
@@ -178,8 +177,23 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
             name=name, owner_id=message.from_user.id  # type: ignore[union-attr]
         )
 
+        room_repo = RoomRepository(uow.session)
+        room = await room_repo.require(room_id)
+        invite_code = room.invite_code
+
+        me = await bot.get_me()
+        bot_username = me.username or ""
+
     await state.clear()
-    await message.answer("✅ Комната создана.", reply_markup=room_detail_kb(room_id, is_owner=True))
+    await message.answer(
+        room_created(room_id, invite_code),
+        parse_mode="Markdown",
+        reply_markup=room_detail_kb(room_id, is_owner=True),
+    )
+    await message.answer(
+        room_invite_share(bot_username, room_id, invite_code),
+        parse_mode="Markdown",
+    )
 
 
 @router.message(MenuStates.waiting_room_uuid)
