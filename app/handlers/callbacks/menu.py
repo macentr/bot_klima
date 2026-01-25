@@ -43,6 +43,7 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
     user_status = await get_user_vacation_status(cb.from_user.id, uow)  # type: ignore[union-attr]
 
     if action == "home":
+        await state.clear()
         if cb.message:
             try:
                 await cb.message.edit_text("Главное меню:", reply_markup=main_menu_kb(user_status))
@@ -90,7 +91,9 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
         if cb.message:
             try:
                 await cb.message.edit_text(
-                    "Есть приглашение? Отправь код (или UUID, если его прислали) одним сообщением:"
+                    "Есть приглашение? Отправь код (или UUID, если его прислали) одним сообщением.\n\n"
+                    "Если передумал(а) — выбери пункт в меню ниже.",
+                    reply_markup=main_menu_kb(user_status),
                 )
             except TelegramBadRequest as e:
                 if "message is not modified" not in str(e):
@@ -207,7 +210,11 @@ async def join_room_from_text(message: Message, uow: UnitOfWork, state: FSMConte
     try:
         room_id = uuid.UUID(raw)
     except ValueError:
-        await message.answer("Похоже, это не UUID. Отправьте UUID комнаты ещё раз:")
+        user_status_text = await get_user_vacation_status(message.from_user.id, uow)  # type: ignore[union-attr]
+        await message.answer(
+            "Не похоже на код приглашения или UUID. Отправь код ещё раз или выбери пункт в меню ниже.",
+            reply_markup=main_menu_kb(user_status_text),
+        )
         return
 
     async with uow:
