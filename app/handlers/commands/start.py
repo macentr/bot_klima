@@ -8,7 +8,7 @@ from app.repositories.users import UserRepository
 from app.repositories.uow import UnitOfWork
 from app.services.users import UserService
 from app.ui.keyboards import main_menu_kb
-from app.ui.messages import main_menu_greeting, vacation_status
+from app.ui.messages import main_menu_greeting, vacation_status, help_message
 from app.domain.enums.user import UserGlobalStatus
 
 
@@ -31,6 +31,7 @@ async def start_cmd(message: Message, uow: UnitOfWork) -> None:
     
     await message.answer(
         main_menu_greeting(vacation_status(user_vacation)),
+        parse_mode="Markdown",
         reply_markup=main_menu_kb(vacation_status(user_vacation)),
     )
 
@@ -51,4 +52,10 @@ async def menu_cmd(message: Message, uow: UnitOfWork) -> None:
         "Главное меню:",
         reply_markup=main_menu_kb(vacation_status(user_vacation)),
     )
+
+
+@router.message(Command("help"))
+async def help_cmd(message: Message) -> None:
+    """Show quick start guide."""
+    await message.answer(help_message(), parse_mode="Markdown")
 
