@@ -101,24 +101,25 @@ def help_message() -> str:
     )
 
 
-def room_invite_share(bot_username: str, room_id: uuid.UUID, room_name: str, invite_code: str | None) -> str:
-    bot_link = f"https://t.me/{bot_username}" if bot_username else "бот"
+def room_invite_share(room_id: uuid.UUID, room_name: str, invite_code: str | None) -> str:
+    bot_link = "https://t.me/perevent_bot"
+    bot_link_display = "t.me/perevent_bot"
     if invite_code:
         return (
             f"📩 **Приглашение в комнату \"{room_name}\"**\n\n"
             "🔹 Перешлите это сообщение коллегам\n\n"
-            f"1️⃣ Откройте бота: {bot_link}\n"
+            f"1️⃣ Откройте бота: [{bot_link_display}]({bot_link})\n"
             f"2️⃣ Нажмите на кнопку, чтобы вставить команду:\n"
-            f"/join_invite {invite_code}\n\n"
+            f"`/join_invite {invite_code}`\n\n"
             f"💡 Альтернатива — отправьте код `{invite_code}` в меню бота\n\n"
             f"⚙️ Резервный вариант (UUID):\n"
-            f"/join {room_id}"
+            f"`/join {room_id}`"
         )
     return (
         f"📩 **Приглашение в комнату \"{room_name}\"**\n\n"
         "🔹 Перешлите это сообщение коллегам\n\n"
-        f"1️⃣ Откройте бота: {bot_link}\n"
+        f"1️⃣ Откройте бота: [{bot_link_display}]({bot_link})\n"
         f"2️⃣ Нажмите на кнопку, чтобы вставить команду:\n"
-        f"/join {room_id}"
+        f"`/join {room_id}`"
     )
 

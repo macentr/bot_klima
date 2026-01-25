@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 import logging
 
-from aiogram import Bot, Router
+from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
@@ -28,7 +28,7 @@ def _parse_args(message: Message) -> list[str]:
 
 
 @router.message(Command("create_room"))
-async def create_room_cmd(message: Message, uow: UnitOfWork, bot: Bot) -> None:
+async def create_room_cmd(message: Message, uow: UnitOfWork) -> None:
     args = _parse_args(message)
     if not args:
         await message.answer("Использование: /create_room <название>")
@@ -62,16 +62,13 @@ async def create_room_cmd(message: Message, uow: UnitOfWork, bot: Bot) -> None:
         invite_code = room.invite_code
         room_name = room.name
 
-        me = await bot.get_me()
-        bot_username = me.username or ""
-
     await message.answer(
         room_created(room_id, room_name),
         parse_mode="Markdown",
         reply_markup=room_detail_kb(room_id, is_owner=True),
     )
     await message.answer(
-        room_invite_share(bot_username, room_id, room_name, invite_code),
+        room_invite_share(room_id, room_name, invite_code),
         parse_mode="Markdown",
         reply_markup=invite_copy_kb(invite_code, room_id),
     )

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from aiogram import Bot, Router
+from aiogram import Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -157,7 +157,7 @@ async def open_room(cb: CallbackQuery, callback_data: RoomOpenCb, uow: UnitOfWor
 
 
 @router.message(MenuStates.waiting_room_name)
-async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMContext, bot: Bot) -> None:
+async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMContext) -> None:
     name = (message.text or "").strip()
     if not name:
         await message.answer("Название не может быть пустым. Введите ещё раз:")
@@ -184,9 +184,6 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
         invite_code = room.invite_code
         room_name = room.name
 
-        me = await bot.get_me()
-        bot_username = me.username or ""
-
     await state.clear()
     await message.answer(
         room_created(room_id, room_name),
@@ -194,7 +191,7 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
         reply_markup=room_detail_kb(room_id, is_owner=True),
     )
     await message.answer(
-        room_invite_share(bot_username, room_id, room_name, invite_code),
+        room_invite_share(room_id, room_name, invite_code),
         parse_mode="Markdown",
         reply_markup=invite_copy_kb(invite_code, room_id),
     )
