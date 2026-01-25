@@ -89,7 +89,9 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
         await state.set_state(MenuStates.waiting_room_uuid)
         if cb.message:
             try:
-                await cb.message.edit_text("Отправьте UUID комнаты или код приглашения одним сообщением:")
+                await cb.message.edit_text(
+                    "Есть приглашение? Отправь код (или UUID, если его прислали) одним сообщением:"
+                )
             except TelegramBadRequest as e:
                 if "message is not modified" not in str(e):
                     raise
