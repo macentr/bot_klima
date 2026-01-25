@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
 from aiogram import Bot, Router
 from aiogram.types import CallbackQuery
@@ -10,6 +11,7 @@ from app.domain.exceptions import DomainError
 from app.repositories.events import EventRepository, ParticipationRepository
 from app.repositories.uow import UnitOfWork
 from app.ui.keyboards import EventActionCb, map_action_to_state, MenuCb
+from app.ui.messages import event_type_display
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardMarkup
 
@@ -56,7 +58,12 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
         }[part.state]
         lines.append(f"{prefix} {user.display_name}")
 
+    # Format creation time
+    created_time = event.created_at.strftime("%H:%M")
+    event_name = event_type_display(event.type)
+    
     text = (
+        f"📌 **{event_name}** (создано в {created_time})\n\n"
         f"✅ Пойдут: {counts[ParticipationState.ACCEPTED]}\n"
         f"🕒 Позже: {counts[ParticipationState.LATER]}\n"
         f"❌ Не пойдут: {counts[ParticipationState.DECLINED]}\n"
@@ -91,6 +98,7 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
     if event.creator_message_id and event.creator_id != cb.from_user.id:
         member_statuses = "\n".join(lines) if lines else "Нет участников"
         creator_text = (
+            f"📌 **{event_name}** (создано в {created_time})\n\n"
             f"✅ Пойдут: {counts[ParticipationState.ACCEPTED]}\n"
             f"🕒 Позже: {counts[ParticipationState.LATER]}\n"
             f"❌ Не пойдут: {counts[ParticipationState.DECLINED]}\n"
