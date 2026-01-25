@@ -177,6 +177,8 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
             name=name, owner_id=message.from_user.id  # type: ignore[union-attr]
         )
 
+        await uow.session.flush()
+
         room_repo = RoomRepository(uow.session)
         room = await room_repo.require(room_id)
         invite_code = room.invite_code

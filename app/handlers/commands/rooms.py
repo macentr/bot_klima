@@ -54,7 +54,8 @@ async def create_room_cmd(message: Message, uow: UnitOfWork, bot: Bot) -> None:
         except DomainError as e:
             await message.answer(f"❌ {e}")
             return
-        
+        await uow.session.flush()
+
         # Get the created room to retrieve invite code
         room_repo = RoomRepository(uow.session)
         room = await room_repo.require(room_id)
