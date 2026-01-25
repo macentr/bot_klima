@@ -97,11 +97,13 @@ async def create_event_cmd(message: Message, bot: Bot, uow: UnitOfWork) -> None:
                 continue
             recipients.append(uid)
 
+    # Get room name for notification
+    room = await room_repo.require(room_id)
     notif = NotificationService(bot)
     await notif.send_many(
         recipients,
-        text=f"📣 Новое событие в комнате `{room_id}`: `{event_id}`",
+        text=f"📣 Новое событие в комнате **{room.name}**",
         reply_markup=event_actions_kb(event_id),
     )
-    await message.answer(f"✅ Событие `{event_id}` создано.", parse_mode="Markdown")
+    await message.answer("✅ Событие создано!", parse_mode="Markdown")
 

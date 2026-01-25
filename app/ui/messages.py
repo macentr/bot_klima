@@ -11,11 +11,11 @@ def room_created(room_id: uuid.UUID, room_name: str) -> str:
 
 
 def joined_room(room_id: uuid.UUID) -> str:
-    return f"✅ Вы вступили в комнату `{room_id}`"
+    return "✅ Вы успешно вступили в комнату!"
 
 
 def event_created(event_id: uuid.UUID) -> str:
-    return f"📌 Событие создано: `{event_id}`"
+    return "📌 Событие создано!"
 
 
 def participation_label(state: ParticipationState) -> str:
@@ -62,16 +62,16 @@ def main_menu_greeting(vacation_status: str) -> str:
 
 def event_created_with_statuses(event_type: EventType, event_id: uuid.UUID) -> str:
     """Format event creation message with type name."""
-    return f"✅ Событие «{event_type_display(event_type)}» создано!\n\nID: `{event_id}`"
+    return f"✅ Событие «{event_type_display(event_type)}» создано!"
 
 
 def event_notification_with_statuses(room_name: str, event_type: EventType, event_id: uuid.UUID) -> str:
     """Format notification about new event."""
-    return f"📣 В комнате «{room_name}» создано событие {event_type_display(event_type)}\n\nID: `{event_id}`"
+    return f"📣 В комнате «{room_name}» создано событие {event_type_display(event_type)}"
 
 
 def confirm_delete_room(room_id: uuid.UUID) -> str:
-    return f"⚠️ Удалить комнату `{room_id}`? Действие необратимо."
+    return "⚠️ Удалить комнату? Действие необратимо."
 
 
 def room_deleted() -> str:
@@ -111,17 +111,13 @@ def room_invite_share(room_id: uuid.UUID, room_name: str, invite_code: str | Non
             f"📩 **Приглашение в комнату \"{room_name}\"**\n\n"
             "🔹 Перешлите это сообщение коллегам\n\n"
             f"1️⃣ Откройте бота: [{bot_link_display}]({bot_link})\n"
-            f"2️⃣ Нажмите на кнопку, чтобы вставить команду:\n"
+            f"2️⃣ Используйте команду:\n"
             f"`/join_invite {invite_code}`\n\n"
-            f"💡 Альтернатива — отправьте код `{invite_code}` в меню бота\n\n"
-            f"⚙️ Резервный вариант (UUID):\n"
-            f"`/join {room_id}`"
+            f"💡 Или отправьте код `{invite_code}` в меню бота"
         )
     return (
         f"📩 **Приглашение в комнату \"{room_name}\"**\n\n"
-        "🔹 Перешлите это сообщение коллегам\n\n"
-        f"1️⃣ Откройте бота: [{bot_link_display}]({bot_link})\n"
-        f"2️⃣ Нажмите на кнопку, чтобы вставить команду:\n"
-        f"`/join {room_id}`"
+        "🔹 Свяжитесь с владельцем комнаты для получения кода приглашения\n\n"
+        f"Откройте бота: [{bot_link_display}]({bot_link})"
     )
 

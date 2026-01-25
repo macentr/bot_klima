@@ -168,8 +168,11 @@ async def confirm_delete_room_action(cb: CallbackQuery, callback_data: ConfirmDe
 
     if not confirmed:
         if cb.message:
+            async with uow:
+                assert uow.session is not None
+                room = await RoomRepository(uow.session).require(room_id)
             await cb.message.edit_text(
-                f"Комната `{room_id}`\n\nВыберите событие для создания:",
+                f"📍 Комната **{room.name}**\n\nВыберите событие для создания:",
                 parse_mode="Markdown",
                 reply_markup=room_detail_kb(room_id, is_owner=True),
             )

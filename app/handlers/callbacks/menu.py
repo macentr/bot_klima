@@ -148,8 +148,9 @@ async def open_room(cb: CallbackQuery, callback_data: RoomOpenCb, uow: UnitOfWor
         logger.debug(f"open_room: room_id={room_id}, user_id={cb.from_user.id}, role={role}, is_owner={is_owner}, open_event_id={open_event_id}")
     
     if cb.message:
+        room = await room_repo.require(room_id)
         await cb.message.edit_text(
-            f"Комната `{room_id}`\n\nМожно создать новое событие или вернуться к последнему.",
+            f"📍 Комната **{room.name}**\n\nМожно создать новое событие или вернуться к последнему.",
             parse_mode="Markdown",
             reply_markup=room_detail_kb(room_id, is_owner=is_owner, open_event_id=open_event_id),
         )
