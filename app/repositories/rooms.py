@@ -94,12 +94,19 @@ class RoomMemberRepository:
         role: RoomRole,
     ) -> RoomMemberModel:
         """
-        Idempotent membership: create if missing, otherwise update role.
+        Idempotent membership: create if missing, otherwise update role only if not downgrading.
+        Prevents downgrading OWNER to MEMBER if they rejoin their own room.
         """
         m = await self._session.get(RoomMemberModel, {"room_id": room_id, "user_id": user_id})
         if m is None:
             m = RoomMemberModel(room_id=room_id, user_id=user_id, role=role)
             self._session.add(m)
+            return m
+        # Don't downgrade: if current role is higher, keep it
+        # Role hierarchy: OWNER (0) > ADMIN (1) > MEMBER (2)
+        role_order = {RoomRole.OWNER: 0, RoomRole.ADMIN: 1, RoomRole.MEMBER: 2}
+        if role_order[m.role] < role_order[role]:
+            # Current role is higher, don't change
             return m
         m.role = role
         return m
