@@ -50,7 +50,7 @@ async def menu_cmd(message: Message, uow: UnitOfWork) -> None:
             user_vacation = user.global_status
     
     await message.answer(
-        "Главное меню:",
+        "🏠 Возвращаемся в главное меню!\n\nЧто будем делать дальше?",
         reply_markup=main_menu_kb(vacation_status(user_vacation)),
     )
 
