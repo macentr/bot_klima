@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from aiogram import Router
 from aiogram.filters import Command, CommandStart
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from app.repositories.users import UserRepository
@@ -58,4 +59,25 @@ async def menu_cmd(message: Message, uow: UnitOfWork) -> None:
 async def help_cmd(message: Message) -> None:
     """Show quick start guide."""
     await message.answer(help_message(), parse_mode="Markdown")
+
+
+@router.message(Command("reset"))
+async def reset_cmd(message: Message, state: FSMContext, uow: UnitOfWork) -> None:
+    """Reset FSM state and return to main menu. Use this if bot is stuck in some state."""
+    await state.clear()
+    
+    user_vacation = UserGlobalStatus.ACTIVE
+    
+    async with uow:
+        assert uow.session is not None
+        user_repo = UserRepository(uow.session)
+        user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
+        if user:
+            user_vacation = user.global_status
+    
+    await message.answer(
+        "🔄 Состояние очищено. Вы в главном меню.",
+        reply_markup=main_menu_kb(vacation_status(user_vacation)),
+    )
+
 
