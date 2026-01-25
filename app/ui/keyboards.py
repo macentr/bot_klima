@@ -140,3 +140,19 @@ def event_notification_kb(event_id: uuid.UUID) -> InlineKeyboardMarkup:
     kb.adjust(2)
     return kb.as_markup()
 
+
+def invite_copy_kb(invite_code: str | None, room_id: uuid.UUID) -> InlineKeyboardMarkup:
+    """Inline buttons that prefill join commands in the input field for quick copying."""
+    kb = InlineKeyboardBuilder()
+    if invite_code:
+        kb.button(
+            text="📋 Скопировать /join_invite",
+            switch_inline_query_current_chat=f"/join_invite {invite_code}",
+        )
+    kb.button(
+        text="📋 Скопировать /join",
+        switch_inline_query_current_chat=f"/join {room_id}",
+    )
+    kb.adjust(1)
+    return kb.as_markup()
+

@@ -11,7 +11,7 @@ from app.repositories.rooms import RoomRepository
 from app.repositories.uow import UnitOfWork
 from app.repositories.users import UserRepository
 from app.services.users import UserService
-from app.ui.keyboards import MenuCb, RoomOpenCb, main_menu_kb, room_detail_kb, rooms_list_kb
+from app.ui.keyboards import MenuCb, RoomOpenCb, main_menu_kb, room_detail_kb, rooms_list_kb, invite_copy_kb
 from app.ui.messages import vacation_status, room_created, room_invite_share
 from app.domain.enums.user import UserGlobalStatus
 
@@ -196,6 +196,7 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
     await message.answer(
         room_invite_share(bot_username, room_id, room_name, invite_code),
         parse_mode="Markdown",
+        reply_markup=invite_copy_kb(invite_code, room_id),
     )
 
 

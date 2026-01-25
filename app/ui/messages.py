@@ -108,7 +108,7 @@ def room_invite_share(bot_username: str, room_id: uuid.UUID, room_name: str, inv
             f"📩 **Приглашение в комнату \"{room_name}\"**\n\n"
             "🔹 Перешлите это сообщение коллегам\n\n"
             f"1️⃣ Откройте бота: {bot_link}\n"
-            f"2️⃣ Нажмите на команду ниже (скопируется автоматически):\n"
+            f"2️⃣ Нажмите на кнопку, чтобы вставить команду:\n"
             f"/join_invite {invite_code}\n\n"
             f"💡 Альтернатива — отправьте код `{invite_code}` в меню бота\n\n"
             f"⚙️ Резервный вариант (UUID):\n"
@@ -118,7 +118,7 @@ def room_invite_share(bot_username: str, room_id: uuid.UUID, room_name: str, inv
         f"📩 **Приглашение в комнату \"{room_name}\"**\n\n"
         "🔹 Перешлите это сообщение коллегам\n\n"
         f"1️⃣ Откройте бота: {bot_link}\n"
-        f"2️⃣ Нажмите на команду ниже:\n"
+        f"2️⃣ Нажмите на кнопку, чтобы вставить команду:\n"
         f"/join {room_id}"
     )
 

@@ -14,7 +14,7 @@ from app.repositories.uow import UnitOfWork
 from app.services.rooms import RoomService
 from app.services.users import UserService
 from app.ui.messages import joined_room, room_created, room_invite_share
-from app.ui.keyboards import room_detail_kb
+from app.ui.keyboards import room_detail_kb, invite_copy_kb
 
 
 logger = logging.getLogger(__name__)
@@ -73,6 +73,7 @@ async def create_room_cmd(message: Message, uow: UnitOfWork, bot: Bot) -> None:
     await message.answer(
         room_invite_share(bot_username, room_id, room_name, invite_code),
         parse_mode="Markdown",
+        reply_markup=invite_copy_kb(invite_code, room_id),
     )
     logger.debug(f"create_room_cmd: Created room {room_id}, sent keyboard with is_owner=True")
 
