@@ -30,6 +30,16 @@ async def get_user_vacation_status(user_id: int, uow: UnitOfWork) -> str:
 router = Router(name="menu")
 
 
+async def _delayed_delete(bot, chat_id: int, message_id: int, delay: int) -> None:
+    """Delete message after delay in seconds."""
+    import asyncio
+    await asyncio.sleep(delay)
+    try:
+        await bot.delete_message(chat_id=chat_id, message_id=message_id)
+    except Exception:
+        pass
+
+
 class MenuStates(StatesGroup):
     waiting_room_name = State()
     waiting_room_uuid = State()
@@ -257,11 +267,19 @@ async def join_room_from_text(message: Message, uow: UnitOfWork, state: FSMConte
     try:
         room_id = uuid.UUID(raw)
     except ValueError:
+        # Delete invalid input immediately
+        try:
+            await message.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+        except Exception:
+            pass
         user_status_text = await get_user_vacation_status(message.from_user.id, uow)  # type: ignore[union-attr]
-        await message.answer(
+        error_msg = await message.answer(
             "Не похоже на код приглашения или UUID. Отправь код ещё раз или выбери пункт в меню ниже.",
             reply_markup=main_menu_kb(user_status_text),
         )
+        # Delete error after 3 seconds
+        import asyncio
+        asyncio.create_task(_delayed_delete(message.bot, message.chat.id, error_msg.message_id, 3))
         return
 
     async def _delete_prompt() -> None:
@@ -273,6 +291,12 @@ async def join_room_from_text(message: Message, uow: UnitOfWork, state: FSMConte
             except Exception:
                 pass
             await state.update_data(room_join_prompt_id=None)
+
+    async def _delete_user_message() -> None:
+        try:
+            await message.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+        except Exception:
+            pass
 
     async with uow:
         assert uow.session is not None
@@ -288,13 +312,18 @@ async def join_room_from_text(message: Message, uow: UnitOfWork, state: FSMConte
                 room_id=room_id, user_id=message.from_user.id  # type: ignore[union-attr]
             )
         except DomainError as e:
-            user_status_text = await get_user_vacation_status(message.from_user.id, uow)  # type: ignore[union-attr]
-            await message.answer(f"❌ {e}\n\nПопробуйте ещё раз UUID или вернитесь в меню.", reply_markup=main_menu_kb(user_status_text))
-            await state.clear()
+            await _delete_user_message()
             await _delete_prompt()
+            user_status_text = await get_user_vacation_status(message.from_user.id, uow)  # type: ignore[union-attr]
+            error_msg = await message.answer(f"❌ {e}\n\nПопробуйте ещё раз UUID или вернитесь в меню.", reply_markup=main_menu_kb(user_status_text))
+            await state.clear()
+            # Delete error message after 3 seconds
+            import asyncio
+            asyncio.create_task(_delayed_delete(message.bot, message.chat.id, error_msg.message_id, 3))
             return
 
-    await state.clear()
+    await _delete_user_message()
     await _delete_prompt()
+    await state.clear()
     await message.answer("✅ Вступили в комнату.", reply_markup=room_detail_kb(room_id, is_owner=False))
 
