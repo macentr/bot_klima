@@ -43,6 +43,12 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
             return
 
         rows = await participations.list_with_users(event_id)
+        
+        # Get creator info
+        from app.repositories.users import UserRepository
+        user_repo = UserRepository(uow.session)
+        creator = await user_repo.get(event.creator_id)
+        creator_name = creator.display_name if creator else "Пользователь"
 
     # Render summary: counts + поимённый список c эмодзи.
     counts: dict[ParticipationState, int] = {s: 0 for s in ParticipationState}
@@ -71,7 +77,8 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
         event_name = event_type_display(event.type)
     
     text = (
-           f"📌 **{event_name}** (создано в {created_time} МСК)\n\n"
+           f"📌 **{event_name}** (создано в {created_time} МСК)\n"
+        f"_Создатель: {creator_name}_\n\n"
         f"✅ Пойдут: {counts[ParticipationState.ACCEPTED]}\n"
         f"🕒 Позже: {counts[ParticipationState.LATER]}\n"
         f"❌ Не пойдут: {counts[ParticipationState.DECLINED]}\n"
@@ -108,7 +115,8 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
     if event.creator_message_id and event.creator_id != cb.from_user.id:
         member_statuses = "\n".join(lines) if lines else "Нет участников"
         creator_text = (
-              f"📌 **{event_name}** (создано в {created_time} МСК)\n\n"
+              f"📌 **{event_name}** (создано в {created_time} МСК)\n"
+            f"_Создатель: {creator_name}_\n\n"
             f"✅ Пойдут: {counts[ParticipationState.ACCEPTED]}\n"
             f"🕒 Позже: {counts[ParticipationState.LATER]}\n"
             f"❌ Не пойдут: {counts[ParticipationState.DECLINED]}\n"

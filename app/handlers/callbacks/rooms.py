@@ -131,8 +131,9 @@ async def room_create_event_from_button(
     # Send notification to other members with event info and member statuses
     notif = NotificationService(bot)
     member_statuses_text = "\n".join(member_list) if member_list else "Нет участников"
+    creator_name = cb.from_user.full_name or cb.from_user.username or "Пользователь"  # type: ignore[union-attr]
     event_message = event_notification_with_statuses(room.name, event_type, event_id)
-    full_message = f"{event_message}\n\nУчастники:\n{member_statuses_text}"
+    full_message = f"{event_message}\n_Создатель: {creator_name}_\n\nУчастники:\n{member_statuses_text}"
     
     await notif.send_many(
         recipients,
@@ -390,7 +391,8 @@ async def create_custom_event_from_text(
     # Send notification to other members
     notif = NotificationService(bot)
     member_statuses_text = "\n".join(member_list) if member_list else "Нет участников"
-    event_message = f"✨ **{description}**\n_Комната: {room.name}_\n\nСобытие создано!"
+    creator_name = message.from_user.full_name or message.from_user.username or "Пользователь"  # type: ignore[union-attr]
+    event_message = f"✨ **{description}**\n_Комната: {room.name}_\n_Создатель: {creator_name}_\n\nСобытие создано!"
     full_message = f"{event_message}\n\nУчастники:\n{member_statuses_text}"
     
     await notif.send_many(
