@@ -40,6 +40,7 @@ class EventService:
         creator_id: int,
         event_type: EventType,
         auto_close_minutes: int | None,
+        custom_description: str | None = None,
     ) -> uuid.UUID:
         await self._access.require_role_at_least(
             room_id=room_id,
@@ -76,6 +77,7 @@ class EventService:
                 creator_id=creator_id,
                 event_type=event_type,
                 close_at=close_at,
+                custom_description=custom_description,
             )
             member_ids = await self._room_members.list_member_ids(room_id=room_id)
             # Disabled users are excluded from everything.

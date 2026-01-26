@@ -147,6 +147,9 @@ class EventModel(Base):
         nullable=False,
         server_default=EventState.CREATED.value,
     )
+    
+    # For custom events - user-defined description
+    custom_description: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

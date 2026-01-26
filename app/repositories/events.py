@@ -47,6 +47,7 @@ class EventRepository:
         creator_id: int,
         event_type: EventType,
         close_at: datetime | None,
+        custom_description: str | None = None,
     ) -> EventModel:
         """
         Creates event in OPEN state. Uniqueness "one OPEN per room" is enforced by DB index.
@@ -59,6 +60,7 @@ class EventRepository:
             type=event_type,
             state=EventState.OPEN,
             close_at=close_at,
+            custom_description=custom_description,
         )
         self._session.add(event)
         return event

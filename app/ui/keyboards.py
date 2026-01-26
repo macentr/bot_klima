@@ -116,6 +116,9 @@ def room_detail_kb(room_id: uuid.UUID, is_owner: bool = False, open_event_id: uu
         ("🚶 Прогулка (5 мин)", EventType.WALK),
     ]:
         kb.button(text=text, callback_data=RoomEventCreateCb(room_id=room_id, event_type=etype.value).pack())
+    
+    # Custom event button
+    kb.button(text="✨ Свое событие", callback_data=RoomEventCreateCb(room_id=room_id, event_type=EventType.CUSTOM.value).pack())
 
     # If there's a previous event, allow returning to it
     if open_event_id:
