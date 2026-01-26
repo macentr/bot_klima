@@ -62,7 +62,13 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
     msk_tz = timezone(timedelta(hours=3))
     created_time_msk = event.created_at.astimezone(msk_tz)
     created_time = created_time_msk.strftime("%H:%M")
-    event_name = event_type_display(event.type)
+    
+    # Use custom_description for CUSTOM events, otherwise use event_type_display
+    from app.domain.enums.event import EventType
+    if event.type == EventType.CUSTOM and event.custom_description:
+        event_name = event.custom_description
+    else:
+        event_name = event_type_display(event.type)
     
     text = (
            f"📌 **{event_name}** (создано в {created_time} МСК)\n\n"

@@ -380,8 +380,8 @@ async def create_custom_event_from_text(
 
     # Send notification to other members
     notif = NotificationService(bot)
-    member_statuses_text = "\\n".join(member_list) if member_list else "Нет участников"
-    event_message = f"✨ **{description}**\\n_Комната: {room.name}_\\n\\nСобытие создано!"
+    member_statuses_text = "\n".join(member_list) if member_list else "Нет участников"
+    event_message = f"✨ **{description}**\n_Комната: {room.name}_\n\nСобытие создано!"
     full_message = f"{event_message}\n\nУчастники:\n{member_statuses_text}"
     
     await notif.send_many(
@@ -390,7 +390,7 @@ async def create_custom_event_from_text(
         reply_markup=event_notification_kb(event_id, room_id),
     )
     
-    creator_message = f"✨ **{description}**\\n_Комната: {room.name}_\\n\\n🎉 Событие создано!\\n\\nУчастники:\\n{member_statuses_text}"
+    creator_message = f"✨ **{description}**\n_Комната: {room.name}_\n\n🎉 Событие создано!\n\nУчастники:\n{member_statuses_text}"
     creator_msg = await message.answer(creator_message, parse_mode="Markdown", reply_markup=event_notification_kb(event_id, room_id))
     
     # Save creator_message_id and open_event_id
