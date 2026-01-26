@@ -197,6 +197,12 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
                 pass
             await state.update_data(room_name_prompt_id=None)
 
+    async def _delete_user_message() -> None:
+        try:
+            await message.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+        except Exception:
+            pass
+
     async def _delete_old_invite(user_id: int, message_id: int | None) -> None:
         if not message_id:
             return
@@ -232,6 +238,7 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
             last_invite_msg_id = user.last_invite_message_id
 
     await state.clear()
+    await _delete_user_message()
     await _delete_prompt()
     await message.answer(
         room_created(room_id, room_name),
