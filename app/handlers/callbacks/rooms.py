@@ -65,10 +65,11 @@ async def room_create_event_from_button(
         await state.set_state(CustomEventStates.waiting_description)
         await state.update_data(room_id=str(room_id))
         if cb.message:
-            await cb.message.edit_text(
+            prompt_msg = await cb.message.edit_text(
                 "✨ Опишите ваше событие (например: 'Настолка (30 мин)' или 'Обед (45 мин)'):\n\n"
                 "Для отмены отправьте /cancel"
             )
+            await state.update_data(custom_event_prompt_id=prompt_msg.message_id)
         await cb.answer()
         return
 
@@ -314,6 +315,7 @@ async def create_custom_event_from_text(
     # Get room_id from state
     data = await state.get_data()
     room_id_str = data.get("room_id")
+    prompt_msg_id = data.get("custom_event_prompt_id")
     if not room_id_str:
         await state.clear()
         await message.answer("❌ Ошибка: комната не найдена")
@@ -326,6 +328,13 @@ async def create_custom_event_from_text(
             await message.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
         except Exception:
             pass
+    
+    async def _delete_prompt() -> None:
+        if prompt_msg_id:
+            try:
+                await message.bot.delete_message(chat_id=message.chat.id, message_id=prompt_msg_id)
+            except Exception:
+                pass
     
     async with uow:
         assert uow.session is not None
@@ -409,6 +418,7 @@ async def create_custom_event_from_text(
         await uow.session.flush()
     
     await _delete_user_message()
+    await _delete_prompt()
     await state.clear()
 
 
