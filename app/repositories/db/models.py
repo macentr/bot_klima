@@ -40,6 +40,9 @@ class UserModel(Base):
     )
     vacation_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Admin flag
+    is_admin: Mapped[bool] = mapped_column(nullable=False, server_default="false")
+
     # Last sent helper messages to keep chat clean
     last_menu_message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     last_invite_message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)

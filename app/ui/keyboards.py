@@ -45,6 +45,10 @@ class ConfirmDeleteRoomCb(CallbackData, prefix="confirm_del_room"):
     confirmed: bool
 
 
+class AdminCb(CallbackData, prefix="admin"):
+    action: str  # stats|broadcast
+
+
 def event_actions_kb(event_id: uuid.UUID, *, include_refresh: bool = True) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     kb.button(text="✅ Пойду", callback_data=EventActionCb(event_id=event_id, action="accept").pack())
@@ -163,4 +167,14 @@ def invite_copy_kb(invite_code: str | None, room_id: uuid.UUID) -> InlineKeyboar
     )
     kb.adjust(1)
     return kb.as_markup()
+
+
+def admin_panel_kb() -> InlineKeyboardMarkup:
+    """Admin panel keyboard."""
+    kb = InlineKeyboardBuilder()
+    kb.button(text="📊 Статистика", callback_data=AdminCb(action="stats").pack())
+    kb.button(text="📢 Рассылка", callback_data=AdminCb(action="broadcast").pack())
+    kb.adjust(1)
+    return kb.as_markup()
+
 

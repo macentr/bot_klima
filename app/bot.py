@@ -11,6 +11,7 @@ from app.handlers.commands.rooms import router as rooms_router
 from app.handlers.commands.start import router as start_router
 from app.handlers.commands.status import router as status_router
 from app.handlers.commands.events import router as events_router
+from app.handlers.commands.admin import router as admin_router
 from app.handlers.middlewares.uow import UnitOfWorkMiddleware
 from app.handlers.callbacks.events import router as events_cb_router
 from app.handlers.callbacks.rooms import router as rooms_cb_router
@@ -30,6 +31,7 @@ async def main() -> None:
     dp = Dispatcher()
     dp.update.middleware(UnitOfWorkMiddleware(container.sessionmaker))
     dp.include_router(start_router)
+    dp.include_router(admin_router)
     dp.include_router(rooms_router)
     dp.include_router(status_router)
     dp.include_router(events_router)
