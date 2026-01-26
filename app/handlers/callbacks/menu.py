@@ -11,8 +11,8 @@ from app.repositories.rooms import RoomRepository
 from app.repositories.uow import UnitOfWork
 from app.repositories.users import UserRepository
 from app.services.users import UserService
-from app.ui.keyboards import MenuCb, RoomOpenCb, main_menu_kb, room_detail_kb, rooms_list_kb, invite_copy_kb
-from app.ui.messages import vacation_status, room_created, room_invite_share
+from app.ui.keyboards import MenuCb, RoomOpenCb, main_menu_kb, room_detail_kb, rooms_list_kb
+from app.ui.messages import vacation_status, room_created, room_invite_share, help_message
 from app.domain.enums.user import UserGlobalStatus
 
 
@@ -88,6 +88,7 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
         if cb.message:
             try:
                 await cb.message.edit_text("Введите название комнаты одним сообщением:")
+                await state.update_data(room_name_prompt_id=cb.message.message_id)
             except TelegramBadRequest as e:
                 if "message is not modified" not in str(e):
                     raise
@@ -103,6 +104,7 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
                     "Если передумал(а) — выбери пункт в меню ниже.",
                     reply_markup=main_menu_kb(user_status),
                 )
+                await state.update_data(room_join_prompt_id=cb.message.message_id)
             except TelegramBadRequest as e:
                 if "message is not modified" not in str(e):
                     raise
@@ -132,6 +134,16 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
             # Reload status after change
             new_status = await get_user_vacation_status(cb.from_user.id, uow)  # type: ignore[union-attr]
             await cb.message.edit_text("Главное меню:", reply_markup=main_menu_kb(new_status))
+        return
+
+    if action == "help":
+        if cb.message:
+            try:
+                await cb.message.edit_text(help_message(), parse_mode="Markdown", reply_markup=main_menu_kb(user_status))
+            except TelegramBadRequest as e:
+                if "message is not modified" not in str(e):
+                    raise
+        await cb.answer()
         return
 
     await cb.answer("Неизвестное действие", show_alert=True)
@@ -175,6 +187,16 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
         await message.answer("Название не может быть пустым. Введите ещё раз:")
         return
 
+    async def _delete_prompt() -> None:
+        data = await state.get_data()
+        prompt_id = data.get("room_name_prompt_id")
+        if prompt_id:
+            try:
+                await message.bot.delete_message(chat_id=message.chat.id, message_id=prompt_id)
+            except Exception:
+                pass
+            await state.update_data(room_name_prompt_id=None)
+
     async def _delete_old_invite(user_id: int, message_id: int | None) -> None:
         if not message_id:
             return
@@ -210,6 +232,7 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
             last_invite_msg_id = user.last_invite_message_id
 
     await state.clear()
+    await _delete_prompt()
     await message.answer(
         room_created(room_id, room_name),
         parse_mode="Markdown",
@@ -221,7 +244,6 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
     invite_msg = await message.answer(
         room_invite_share(room_id, room_name, invite_code),
         parse_mode="Markdown",
-        reply_markup=invite_copy_kb(invite_code, room_id),
     )
 
     async with uow:
@@ -248,6 +270,16 @@ async def join_room_from_text(message: Message, uow: UnitOfWork, state: FSMConte
         )
         return
 
+    async def _delete_prompt() -> None:
+        data = await state.get_data()
+        prompt_id = data.get("room_join_prompt_id")
+        if prompt_id:
+            try:
+                await message.bot.delete_message(chat_id=message.chat.id, message_id=prompt_id)
+            except Exception:
+                pass
+            await state.update_data(room_join_prompt_id=None)
+
     async with uow:
         assert uow.session is not None
         user_repo = UserRepository(uow.session)
@@ -265,8 +297,10 @@ async def join_room_from_text(message: Message, uow: UnitOfWork, state: FSMConte
             user_status_text = await get_user_vacation_status(message.from_user.id, uow)  # type: ignore[union-attr]
             await message.answer(f"❌ {e}\n\nПопробуйте ещё раз UUID или вернитесь в меню.", reply_markup=main_menu_kb(user_status_text))
             await state.clear()
+            await _delete_prompt()
             return
 
     await state.clear()
+    await _delete_prompt()
     await message.answer("✅ Вступили в комнату.", reply_markup=room_detail_kb(room_id, is_owner=False))
 

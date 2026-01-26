@@ -26,7 +26,6 @@ from app.ui.keyboards import (
     room_detail_kb,
     confirm_delete_room_kb,
     event_notification_kb,
-    invite_copy_kb,
 )
 from app.ui.messages import confirm_delete_room, room_deleted, event_created_with_statuses, event_notification_with_statuses, participation_label, room_invite_share
 from app.services.rooms import RoomService
@@ -207,7 +206,6 @@ async def send_room_invite(cb: CallbackQuery, callback_data: RoomInviteCb, uow: 
         chat_id=cb.from_user.id,
         text=text,
         parse_mode="Markdown",
-        reply_markup=invite_copy_kb(invite_code, room_id),
     )
 
     async with uow:

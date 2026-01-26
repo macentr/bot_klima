@@ -25,7 +25,7 @@ class RoomEventCreateCb(CallbackData, prefix="room_evt"):
 
 
 class MenuCb(CallbackData, prefix="menu"):
-    action: str  # home|rooms|create_room|join_room|vacation_on|vacation_off
+    action: str  # home|rooms|create_room|join_room|vacation_on|vacation_off|help
 
 
 class RoomOpenCb(CallbackData, prefix="room"):
@@ -85,6 +85,7 @@ def main_menu_kb(vacation_status: str = "💼 На работе") -> InlineKeybo
     kb.button(text="🏠 Мои комнаты", callback_data=MenuCb(action="rooms").pack())
     kb.button(text="➕ Создать комнату", callback_data=MenuCb(action="create_room").pack())
     kb.button(text="🔗 Есть приглашение? Войти", callback_data=MenuCb(action="join_room").pack())
+    kb.button(text="📖 Помощь", callback_data=MenuCb(action="help").pack())
     kb.button(text=f"Отпуск: {vacation_status}", callback_data=MenuCb(action="vacation_toggle").pack())
     kb.adjust(1)
     return kb.as_markup()
