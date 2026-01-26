@@ -54,26 +54,42 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
 
     if action == "home":
         await state.clear()
+        # Delete old invite message if exists
+        async with uow:
+            assert uow.session is not None
+            user_repo = UserRepository(uow.session)
+            user = await user_repo.get(cb.from_user.id)  # type: ignore[union-attr]
+            if user and user.last_invite_message_id:
+                try:
+                    await cb.bot.delete_message(chat_id=cb.from_user.id, message_id=user.last_invite_message_id)  # type: ignore[union-attr]
+                except Exception:
+                    pass
+                user.last_invite_message_id = None
+            if cb.message and user:
+                user.last_menu_message_id = cb.message.message_id
+            await uow.session.flush()
         if cb.message:
             try:
                 await cb.message.edit_text("Главное меню:", reply_markup=main_menu_kb(user_status))
             except TelegramBadRequest as e:
                 if "message is not modified" not in str(e):
                     raise
-        if cb.message:
-            async with uow:
-                assert uow.session is not None
-                user_repo = UserRepository(uow.session)
-                user = await user_repo.get(cb.from_user.id)  # type: ignore[union-attr]
-                if user:
-                    user.last_menu_message_id = cb.message.message_id
-                    await uow.session.flush()
         await cb.answer()
         return
 
     if action == "rooms":
         async with uow:
             assert uow.session is not None
+            # Delete old invite message if exists
+            user_repo = UserRepository(uow.session)
+            user = await user_repo.get(cb.from_user.id)  # type: ignore[union-attr]
+            if user and user.last_invite_message_id:
+                try:
+                    await cb.bot.delete_message(chat_id=cb.from_user.id, message_id=user.last_invite_message_id)  # type: ignore[union-attr]
+                except Exception:
+                    pass
+                user.last_invite_message_id = None
+                await uow.session.flush()
             rooms = await RoomRepository(uow.session).list_rooms_for_user(user_id=cb.from_user.id)  # type: ignore[union-attr]
         if cb.message:
             try:
