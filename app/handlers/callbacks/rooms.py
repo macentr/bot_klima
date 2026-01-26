@@ -17,12 +17,31 @@ from app.services.access import AccessControl
 from app.services.events import EventService
 from app.services.notifications import NotificationService
 from app.services.users import UserService
-from app.ui.keyboards import RoomEventCreateCb, RoomDeleteCb, ConfirmDeleteRoomCb, event_actions_kb, room_detail_kb, confirm_delete_room_kb, event_notification_kb
-from app.ui.messages import confirm_delete_room, room_deleted, event_created_with_statuses, event_notification_with_statuses, participation_label
+from app.ui.keyboards import (
+    RoomEventCreateCb,
+    RoomDeleteCb,
+    ConfirmDeleteRoomCb,
+    RoomInviteCb,
+    event_actions_kb,
+    room_detail_kb,
+    confirm_delete_room_kb,
+    event_notification_kb,
+    invite_copy_kb,
+)
+from app.ui.messages import confirm_delete_room, room_deleted, event_created_with_statuses, event_notification_with_statuses, participation_label, room_invite_share
 from app.services.rooms import RoomService
 
 
 router = Router(name="room_callbacks")
+
+
+async def _delete_message_safe(bot: Bot, chat_id: int, message_id: int | None) -> None:
+    if not message_id:
+        return
+    try:
+        await bot.delete_message(chat_id=chat_id, message_id=message_id)
+    except Exception:
+        pass
 
 
 @router.callback_query(RoomEventCreateCb.filter())
@@ -158,6 +177,48 @@ async def delete_room_prompt(cb: CallbackQuery, callback_data: RoomDeleteCb, uow
             if "message is not modified" not in str(e):
                 raise
     await cb.answer()
+
+
+@router.callback_query(RoomInviteCb.filter())
+async def send_room_invite(cb: CallbackQuery, callback_data: RoomInviteCb, uow: UnitOfWork, bot: Bot) -> None:
+    """Send invite message to the requester and replace previous invite message."""
+    room_id = callback_data.room_id
+
+    async with uow:
+        assert uow.session is not None
+        room_repo = RoomRepository(uow.session)
+        room_members = RoomMemberRepository(uow.session)
+        room = await room_repo.require(room_id)
+        invite_code = room.invite_code
+        role = await room_members.get_role(room_id=room_id, user_id=cb.from_user.id)  # type: ignore[union-attr]
+        from app.domain.enums.room import RoomRole
+        if role != RoomRole.OWNER:
+            await cb.answer("❌ Только владелец может отправлять приглашение", show_alert=True)
+            return
+
+        user_repo = UserRepository(uow.session)
+        user = await user_repo.get(cb.from_user.id)  # type: ignore[union-attr]
+        last_invite_message_id = user.last_invite_message_id if user else None
+
+    await _delete_message_safe(bot, cb.from_user.id, last_invite_message_id)  # type: ignore[arg-type]
+
+    text = room_invite_share(room_id, room.name, invite_code)
+    invite_msg = await bot.send_message(
+        chat_id=cb.from_user.id,
+        text=text,
+        parse_mode="Markdown",
+        reply_markup=invite_copy_kb(invite_code, room_id),
+    )
+
+    async with uow:
+        assert uow.session is not None
+        user_repo = UserRepository(uow.session)
+        user = await user_repo.get(cb.from_user.id)  # type: ignore[union-attr]
+        if user:
+            user.last_invite_message_id = invite_msg.message_id
+            await uow.session.flush()
+
+    await cb.answer("Приглашение отправлено")
 
 
 @router.callback_query(ConfirmDeleteRoomCb.filter())

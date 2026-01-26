@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from aiogram import Router
+from aiogram import Bot, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -17,9 +17,18 @@ router = Router(name="start")
 
 
 @router.message(CommandStart())
-async def start_cmd(message: Message, uow: UnitOfWork) -> None:
+async def start_cmd(message: Message, uow: UnitOfWork, bot: Bot) -> None:
     user_vacation = UserGlobalStatus.ACTIVE
-    
+
+    async def _delete_old_menu(user_id: int, message_id: int | None) -> None:
+        if not message_id:
+            return
+        try:
+            await bot.delete_message(chat_id=user_id, message_id=message_id)
+        except Exception:
+            # Message might be gone already; ignore
+            pass
+
     async with uow:
         assert uow.session is not None
         user_repo = UserRepository(uow.session)
@@ -29,30 +38,56 @@ async def start_cmd(message: Message, uow: UnitOfWork) -> None:
         user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
         if user:
             user_vacation = user.global_status
+            await _delete_old_menu(message.from_user.id, user.last_menu_message_id)  # type: ignore[union-attr]
     
-    await message.answer(
+    new_msg = await message.answer(
         main_menu_greeting(vacation_status(user_vacation)),
         parse_mode="Markdown",
         reply_markup=main_menu_kb(vacation_status(user_vacation)),
     )
 
+    async with uow:
+        assert uow.session is not None
+        user_repo = UserRepository(uow.session)
+        user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
+        if user:
+            user.last_menu_message_id = new_msg.message_id
+            await uow.session.flush()
+
 
 @router.message(Command("menu"))
-async def menu_cmd(message: Message, uow: UnitOfWork) -> None:
+async def menu_cmd(message: Message, uow: UnitOfWork, bot: Bot) -> None:
     """Return to main menu from anywhere."""
     user_vacation = UserGlobalStatus.ACTIVE
-    
+
+    async def _delete_old_menu(user_id: int, message_id: int | None) -> None:
+        if not message_id:
+            return
+        try:
+            await bot.delete_message(chat_id=user_id, message_id=message_id)
+        except Exception:
+            pass
+
     async with uow:
         assert uow.session is not None
         user_repo = UserRepository(uow.session)
         user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
         if user:
             user_vacation = user.global_status
+            await _delete_old_menu(message.from_user.id, user.last_menu_message_id)  # type: ignore[union-attr]
     
-    await message.answer(
+    new_msg = await message.answer(
         "🏠 Возвращаемся в главное меню!\n\nЧто будем делать дальше?",
         reply_markup=main_menu_kb(vacation_status(user_vacation)),
     )
+
+    async with uow:
+        assert uow.session is not None
+        user_repo = UserRepository(uow.session)
+        user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
+        if user:
+            user.last_menu_message_id = new_msg.message_id
+            await uow.session.flush()
 
 
 @router.message(Command("help"))
@@ -62,22 +97,39 @@ async def help_cmd(message: Message) -> None:
 
 
 @router.message(Command("reset"))
-async def reset_cmd(message: Message, state: FSMContext, uow: UnitOfWork) -> None:
+async def reset_cmd(message: Message, state: FSMContext, uow: UnitOfWork, bot: Bot) -> None:
     """Reset FSM state and return to main menu. Use this if bot is stuck in some state."""
     await state.clear()
-    
+
+    async def _delete_old_menu(user_id: int, message_id: int | None) -> None:
+        if not message_id:
+            return
+        try:
+            await bot.delete_message(chat_id=user_id, message_id=message_id)
+        except Exception:
+            pass
+
     user_vacation = UserGlobalStatus.ACTIVE
-    
+
     async with uow:
         assert uow.session is not None
         user_repo = UserRepository(uow.session)
         user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
         if user:
             user_vacation = user.global_status
+            await _delete_old_menu(message.from_user.id, user.last_menu_message_id)  # type: ignore[union-attr]
     
-    await message.answer(
+    new_msg = await message.answer(
         "🔄 Состояние очищено. Вы в главном меню.",
         reply_markup=main_menu_kb(vacation_status(user_vacation)),
     )
+
+    async with uow:
+        assert uow.session is not None
+        user_repo = UserRepository(uow.session)
+        user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
+        if user:
+            user.last_menu_message_id = new_msg.message_id
+            await uow.session.flush()
 
 

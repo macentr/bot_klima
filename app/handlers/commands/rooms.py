@@ -14,7 +14,7 @@ from app.repositories.uow import UnitOfWork
 from app.services.rooms import RoomService
 from app.services.users import UserService
 from app.ui.messages import joined_room, room_created, room_invite_share
-from app.ui.keyboards import room_detail_kb
+from app.ui.keyboards import room_detail_kb, invite_copy_kb
 
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,14 @@ async def create_room_cmd(message: Message, uow: UnitOfWork) -> None:
     if not name:
         await message.answer("Нужно указать название комнаты.")
         return
+
+    async def _delete_old_invite(user_id: int, message_id: int | None) -> None:
+        if not message_id:
+            return
+        try:
+            await message.bot.delete_message(chat_id=user_id, message_id=message_id)
+        except Exception:
+            pass
 
     async with uow:
         assert uow.session is not None
@@ -62,15 +70,30 @@ async def create_room_cmd(message: Message, uow: UnitOfWork) -> None:
         invite_code = room.invite_code
         room_name = room.name
 
+        last_invite_message_id = None
+        user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
+        if user:
+            last_invite_message_id = user.last_invite_message_id
+
     await message.answer(
         room_created(room_id, room_name),
         parse_mode="Markdown",
         reply_markup=room_detail_kb(room_id, is_owner=True),
     )
-    await message.answer(
+    await _delete_old_invite(message.from_user.id, last_invite_message_id)  # type: ignore[arg-type]
+    invite_msg = await message.answer(
         room_invite_share(room_id, room_name, invite_code),
         parse_mode="Markdown",
+        reply_markup=invite_copy_kb(invite_code, room_id),
     )
+
+    async with uow:
+        assert uow.session is not None
+        user_repo = UserRepository(uow.session)
+        user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
+        if user:
+            user.last_invite_message_id = invite_msg.message_id
+            await uow.session.flush()
     logger.debug(f"create_room_cmd: Created room {room_id}, sent keyboard with is_owner=True")
 
 @router.message(Command("join"))

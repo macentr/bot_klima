@@ -11,7 +11,7 @@ from app.repositories.rooms import RoomRepository
 from app.repositories.uow import UnitOfWork
 from app.repositories.users import UserRepository
 from app.services.users import UserService
-from app.ui.keyboards import MenuCb, RoomOpenCb, main_menu_kb, room_detail_kb, rooms_list_kb
+from app.ui.keyboards import MenuCb, RoomOpenCb, main_menu_kb, room_detail_kb, rooms_list_kb, invite_copy_kb
 from app.ui.messages import vacation_status, room_created, room_invite_share
 from app.domain.enums.user import UserGlobalStatus
 
@@ -50,6 +50,14 @@ async def menu_action(cb: CallbackQuery, callback_data: MenuCb, uow: UnitOfWork,
             except TelegramBadRequest as e:
                 if "message is not modified" not in str(e):
                     raise
+        if cb.message:
+            async with uow:
+                assert uow.session is not None
+                user_repo = UserRepository(uow.session)
+                user = await user_repo.get(cb.from_user.id)  # type: ignore[union-attr]
+                if user:
+                    user.last_menu_message_id = cb.message.message_id
+                    await uow.session.flush()
         await cb.answer()
         return
 
@@ -144,18 +152,16 @@ async def open_room(cb: CallbackQuery, callback_data: RoomOpenCb, uow: UnitOfWor
         room_members = RoomMemberRepository(uow.session)
         role = await room_members.get_role(room_id=room_id, user_id=cb.from_user.id)  # type: ignore[union-attr]
         is_owner = role == RoomRole.OWNER
-        
         room = await room_repo.require(room_id)
         open_event_id = room.open_event_id
-        
+        room_name = room.name
         import logging
         logger = logging.getLogger(__name__)
         logger.debug(f"open_room: room_id={room_id}, user_id={cb.from_user.id}, role={role}, is_owner={is_owner}, open_event_id={open_event_id}")
-    
+
     if cb.message:
-        room = await room_repo.require(room_id)
         await cb.message.edit_text(
-            f"📍 Комната **{room.name}**\n\nМожно создать новое событие или вернуться к последнему.",
+            f"📍 Комната **{room_name}**\n\nМожно создать новое событие или вернуться к последнему.",
             parse_mode="Markdown",
             reply_markup=room_detail_kb(room_id, is_owner=is_owner, open_event_id=open_event_id),
         )
@@ -168,6 +174,14 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
     if not name:
         await message.answer("Название не может быть пустым. Введите ещё раз:")
         return
+
+    async def _delete_old_invite(user_id: int, message_id: int | None) -> None:
+        if not message_id:
+            return
+        try:
+            await message.bot.delete_message(chat_id=user_id, message_id=message_id)
+        except Exception:
+            pass
 
     async with uow:
         assert uow.session is not None
@@ -190,16 +204,33 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
         invite_code = room.invite_code
         room_name = room.name
 
+        last_invite_msg_id = None
+        user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
+        if user:
+            last_invite_msg_id = user.last_invite_message_id
+
     await state.clear()
     await message.answer(
         room_created(room_id, room_name),
         parse_mode="Markdown",
         reply_markup=room_detail_kb(room_id, is_owner=True),
     )
-    await message.answer(
+
+    await _delete_old_invite(message.from_user.id, last_invite_msg_id)  # type: ignore[arg-type]
+
+    invite_msg = await message.answer(
         room_invite_share(room_id, room_name, invite_code),
         parse_mode="Markdown",
+        reply_markup=invite_copy_kb(invite_code, room_id),
     )
+
+    async with uow:
+        assert uow.session is not None
+        user_repo = UserRepository(uow.session)
+        user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
+        if user:
+            user.last_invite_message_id = invite_msg.message_id
+            await uow.session.flush()
 
 
 @router.message(MenuStates.waiting_room_uuid)

@@ -32,6 +32,10 @@ class RoomOpenCb(CallbackData, prefix="room"):
     room_id: uuid.UUID
 
 
+class RoomInviteCb(CallbackData, prefix="room_inv"):
+    room_id: uuid.UUID
+
+
 class RoomDeleteCb(CallbackData, prefix="room_del"):
     room_id: uuid.UUID
 
@@ -114,6 +118,7 @@ def room_detail_kb(room_id: uuid.UUID, is_owner: bool = False, open_event_id: uu
     
     if is_owner:
         logger.debug("Adding delete button for owner")
+        kb.button(text="📩 Приглашение", callback_data=RoomInviteCb(room_id=room_id).pack())
         kb.button(text="🗑️ Удалить комнату", callback_data=RoomDeleteCb(room_id=room_id).pack())
     else:
         logger.debug("Not adding delete button - not owner")
