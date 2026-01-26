@@ -117,12 +117,12 @@ async def room_create_event_from_button(
     await notif.send_many(
         recipients,
         text=full_message,
-        reply_markup=event_notification_kb(event_id),
+        reply_markup=event_notification_kb(event_id, room_id),
     )
     
     if cb.message:
         creator_message = f"{event_created_with_statuses(event_type, event_id)}\n\nУчастники:\n{member_statuses_text}"
-        creator_msg = await cb.message.answer(creator_message, parse_mode="Markdown", reply_markup=event_notification_kb(event_id))
+        creator_msg = await cb.message.answer(creator_message, parse_mode="Markdown", reply_markup=event_notification_kb(event_id, room_id))
         
         # Save creator_message_id and open_event_id in event for later updates
         async with uow:

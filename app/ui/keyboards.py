@@ -136,12 +136,14 @@ def confirm_delete_room_kb(room_id: uuid.UUID) -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def event_notification_kb(event_id: uuid.UUID) -> InlineKeyboardMarkup:
+def event_notification_kb(event_id: uuid.UUID, room_id: uuid.UUID | None = None) -> InlineKeyboardMarkup:
     """Keyboard for event notifications with menu button always visible."""
     kb = InlineKeyboardBuilder()
     kb.button(text="✅ Пойду", callback_data=EventActionCb(event_id=event_id, action="accept").pack())
     kb.button(text="🕒 Позже", callback_data=EventActionCb(event_id=event_id, action="later").pack())
     kb.button(text="❌ Не смогу", callback_data=EventActionCb(event_id=event_id, action="decline").pack())
+    if room_id:
+        kb.button(text="🏠 В комнату", callback_data=RoomOpenCb(room_id=room_id).pack())
     kb.button(text="⬅️ Меню", callback_data=MenuCb(action="home").pack())
     kb.adjust(2)
     return kb.as_markup()

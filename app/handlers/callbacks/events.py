@@ -79,6 +79,8 @@ async def event_action(cb: CallbackQuery, callback_data: EventActionCb, uow: Uni
         kb = InlineKeyboardBuilder()
         if show_refresh:
             kb.button(text="🔄 Обновить", callback_data=EventActionCb(event_id=event_id, action="refresh").pack())
+        from app.ui.keyboards import RoomOpenCb
+        kb.button(text="🏠 В комнату", callback_data=RoomOpenCb(room_id=event.room_id).pack())
         kb.button(text="⬅️ Меню", callback_data=MenuCb(action="home").pack())
         kb.adjust(1)
         return kb.as_markup()
