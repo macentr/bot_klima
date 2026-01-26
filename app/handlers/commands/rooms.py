@@ -80,19 +80,7 @@ async def create_room_cmd(message: Message, uow: UnitOfWork) -> None:
         parse_mode="Markdown",
         reply_markup=room_detail_kb(room_id, is_owner=True),
     )
-    await _delete_old_invite(message.from_user.id, last_invite_message_id)  # type: ignore[arg-type]
-    invite_msg = await message.answer(
-        room_invite_share(room_id, room_name, invite_code),
-        parse_mode="Markdown",
-    )
-
-    async with uow:
-        assert uow.session is not None
-        user_repo = UserRepository(uow.session)
-        user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
-        if user:
-            user.last_invite_message_id = invite_msg.message_id
-            await uow.session.flush()
+    # Don't send invite automatically - user can request it via button
     logger.debug(f"create_room_cmd: Created room {room_id}, sent keyboard with is_owner=True")
 
 @router.message(Command("join"))

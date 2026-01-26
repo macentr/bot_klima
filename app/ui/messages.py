@@ -7,7 +7,7 @@ from app.domain.enums.user import UserGlobalStatus
 
 
 def room_created(room_id: uuid.UUID, room_name: str) -> str:
-    return f"✅ Комната **{room_name}** создана!\n\nВаше приглашение для коллег придёт следующим сообщением — просто перешлите его."
+    return f"✅ Комната **{room_name}** создана!\n\nЧтобы пригласить коллег, нажмите кнопку **📩 Приглашение** в меню комнаты."
 
 
 def joined_room(room_id: uuid.UUID) -> str:

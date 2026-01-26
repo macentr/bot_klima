@@ -246,20 +246,7 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
         reply_markup=room_detail_kb(room_id, is_owner=True),
     )
 
-    await _delete_old_invite(message.from_user.id, last_invite_msg_id)  # type: ignore[arg-type]
-
-    invite_msg = await message.answer(
-        room_invite_share(room_id, room_name, invite_code),
-        parse_mode="Markdown",
-    )
-
-    async with uow:
-        assert uow.session is not None
-        user_repo = UserRepository(uow.session)
-        user = await user_repo.get(message.from_user.id)  # type: ignore[union-attr]
-        if user:
-            user.last_invite_message_id = invite_msg.message_id
-            await uow.session.flush()
+    # Don't send invite automatically - user can request it via button
 
 
 @router.message(MenuStates.waiting_room_uuid)
