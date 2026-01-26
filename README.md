@@ -280,7 +280,7 @@ docker-compose -f docker-compose.yml up -d
 
 ## Поддержка
 
-Нашли баг? [Откройте issue](https://github.com/yourusername/bot_klima/issues)
+Нашли баг? [Откройте issue](https://github.com/macentr/bot_klima/issues)
 
 ---
 
