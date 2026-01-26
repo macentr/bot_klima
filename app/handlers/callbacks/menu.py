@@ -237,9 +237,9 @@ async def create_room_from_text(message: Message, uow: UnitOfWork, state: FSMCon
         if user:
             last_invite_msg_id = user.last_invite_message_id
 
-    await state.clear()
     await _delete_user_message()
     await _delete_prompt()
+    await state.clear()
     await message.answer(
         room_created(room_id, room_name),
         parse_mode="Markdown",
