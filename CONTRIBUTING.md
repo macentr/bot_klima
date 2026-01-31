@@ -7,7 +7,7 @@
 ### 1. Setup
 
 ```bash
-git clone https://github.com/yourusername/bot_klima.git
+git clone https://github.com/macentr/bot_klima.git
 cd bot_klima
 python -m venv venv
 source venv/bin/activate
@@ -98,10 +98,25 @@ Fixes #123
 
 **Handlers** → **Services** → **Repositories** → **Database**
 
+Важные правила:
 - ❌ Handlers не должны напрямую работать с БД
-- ❌ Services не должны содержать Telegram-специфичный код
+- ❌ Services не должны содержать Telegram-специфичный код (aiogram imports)
 - ✅ Repositories только для data access
-- ✅ Services содержат бизнес-логику
+- ✅ Services содержат бизнес-логику и оркестрацию
+- ✅ Domain exceptions для валидации
+
+Пример правильного flow:
+```python
+# handlers/commands/events.py
+async def create_event_cmd(message: Message, uow: UnitOfWork):
+    async with uow:
+        service = build_event_service(uow)  # DI
+        try:
+            event_id = await service.create_event(...)
+            await message.answer(f"✅ Событие создано: {event_id}")
+        except ConflictError as e:
+            await message.answer(f"❌ {e}")
+```
 
 ### Async/Await
 
@@ -259,18 +274,29 @@ async def create_event(
 
 ## Performance Tips
 
-- Используйте批量操作вместо циклов
+- Используйте batch операции вместо циклов
+```python
+# ❌ Bad - N queries
+for user_id in user_ids:
+    await repo.get(user_id)
+
+# ✅ Good - 1 query
+users = await repo.get_many(user_ids)
+```
 - Добавляйте индексы на часто запрашиваемые поля
-- Профилируйте с `asyncpg --debug`
-- Проверяйте query count в тестах
+- Используйте `EXPLAIN ANALYZE` для анализа медленных запросов
+- Профилируйте с `logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)`
+- Проверяйте query count в тестах (не должно быть N+1)
 
 ## Security
 
 - ❌ Никогда не коммитьте `.env` с реальными токенами
-- ❌ Не логируйте чувствительные данные (BOT_TOKEN, passwords)
+- ❌ Не логируйте чувствительные данные (BOT_TOKEN, passwords, user PII)
 - ✅ Всегда валидируйте user input
-- ✅ Проверяйте права доступа перед любой операцией
-- ✅ Используйте параметризованные запросы (SQLAlchemy это делает)
+- ✅ Проверяйте права доступа перед любой операцией (AccessControl service)
+- ✅ Используйте параметризованные запросы (SQLAlchemy ORM это делает автоматически)
+- ✅ Санитизируйте user-generated контент перед сохранением
+- ✅ Rate limiting для предотвращения спама (cooldown на создание событий)
 
 ## Getting Help
 

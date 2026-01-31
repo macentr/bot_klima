@@ -13,7 +13,7 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/bot_klima.git
+git clone https://github.com/macentr/bot_klima.git
 cd bot_klima
 
 # Copy environment template
@@ -34,7 +34,7 @@ docker-compose logs -f bot
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/bot_klima.git
+git clone https://github.com/macentr/bot_klima.git
 cd bot_klima
 
 # Create virtual environment
@@ -283,6 +283,9 @@ LOG_LEVEL=DEBUG
 ```bash
 # Check if PostgreSQL is running
 docker-compose ps db
+# OR
+brew services list  # macOS
+sudo systemctl status postgresql  # Linux
 
 # Check connection string in .env
 # Format: postgresql+asyncpg://user:password@host:port/dbname
@@ -298,12 +301,20 @@ psql postgresql://klima:password@localhost:5432/klima
 # 1. Open Telegram, find @BotFather
 # 2. /start → /newbot → follow instructions
 # 3. Copy token to BOT_TOKEN in .env
+# 4. Restart bot
 ```
 
 ### "Migrations pending"
 
 ```bash
+# Apply all pending migrations
 alembic upgrade head
+
+# Check current version
+alembic current
+
+# View migration history
+alembic history --verbose
 ```
 
 ### "Tests failing"
@@ -313,6 +324,9 @@ alembic upgrade head
 docker-compose ps db
 
 # Check DATABASE_URL in .env (should use _test database for tests)
+# Create test database
+createdb klima_test
+
 # Run migrations for test DB
 export DATABASE_URL=postgresql+asyncpg://klima:password@localhost:5432/klima_test
 alembic upgrade head
@@ -326,38 +340,85 @@ pytest tests/ -v
 ```bash
 # Fix file permissions
 chmod +x venv/bin/activate
+
+# Fix script permissions
+chmod +x scripts/*.sh
+```
+
+### "Module not found"
+
+```bash
+# Reinstall in editable mode
+pip install -e .
+
+# Or add to PYTHONPATH
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 ```
 
 ## IDE Setup
 
 ### VS Code
 
-1. Install Python extension
-2. Select interpreter: `venv/bin/python`
-3. Install Ruff extension (id: charliermarsh.ruff)
-4. Install Pylance extension (id: ms-python.vscode-pylance)
+Рекомендуемые расширения:
+1. Python (ms-python.python)
+2. Pylance (ms-python.vscode-pylance)
+3. Ruff (charliermarsh.ruff)
+4. Error Lens (usernamehw.errorlens)
+5. Docker (ms-azuretools.vscode-docker)
+
+Настройка:
+```json
+// .vscode/settings.json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python",
+  "python.analysis.typeCheckingMode": "basic",
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": true,
+      "source.organizeImports": true
+    }
+  }
+}
+```
 
 ### PyCharm
 
-1. Configure Python interpreter: `venv/bin/python`
-2. Mark `app/` as Source Root
-3. Configure run configuration for `app/bot.py`
-4. Enable ruff as code style tool
+1. File → Settings → Project → Python Interpreter → Add → Virtualenv
+2. Выбрать `venv/bin/python`
+3. Mark `app/` as Source Root
+4. Run → Edit Configurations → Add Python configuration
+   - Script path: `app/bot.py`
+   - Working directory: project root
+   - Environment variables: load from `.env`
+5. Settings → Tools → Ruff: Enable ruff
 
 ## Resources
 
-- [aiogram Documentation](https://docs.aiogram.dev/)
-- [SQLAlchemy Async](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html)
-- [Pydantic Settings](https://docs.pydantic.dev/latest/usage/settings/)
-- [Alembic Documentation](https://alembic.sqlalchemy.org/)
-- [Python asyncio](https://docs.python.org/3/library/asyncio.html)
+- [aiogram Documentation](https://docs.aiogram.dev/) - Telegram Bot framework
+- [SQLAlchemy 2.0 Async](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html) - ORM
+- [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) - Configuration
+- [Alembic Documentation](https://alembic.sqlalchemy.org/) - Database migrations
+- [Python asyncio](https://docs.python.org/3/library/asyncio.html) - Async programming
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/) - Database
+- [Ruff](https://docs.astral.sh/ruff/) - Linter & Formatter
+- [Pyright](https://github.com/microsoft/pyright) - Type checker
+
+## Project Documentation
+
+- [README.md](README.md) - Основная документация
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Архитектурный анализ
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Гайд для контрибьюторов
+- [CHANGELOG.md](CHANGELOG.md) - История изменений
 
 ## Getting Help
 
-- 📖 Read [README.md](../README.md)
-- 📐 Check [docs/ARCHITECTURE.md](./ARCHITECTURE.md)
-- 🐛 Open [GitHub issue](https://github.com/yourusername/bot_klima/issues)
-- 💬 Start [GitHub discussion](https://github.com/yourusername/bot_klima/discussions)
+- 📖 Read [README.md](README.md) для быстрого старта
+- 📐 Check [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) для понимания архитектуры
+- 🐛 Open [GitHub issue](https://github.com/macentr/bot_klima/issues) для багов
+- 💬 Start [GitHub discussion](https://github.com/macentr/bot_klima/discussions) для вопросов
+- 📧 Contact maintainers (см. [CONTRIBUTING.md](CONTRIBUTING.md))
 
 ---
 

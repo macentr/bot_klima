@@ -47,10 +47,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/bot_klima"
-Documentation = "https://github.com/yourusername/bot_klima#readme"
-Repository = "https://github.com/yourusername/bot_klima.git"
-Issues = "https://github.com/yourusername/bot_klima/issues"
+Homepage = "https://github.com/macentr/bot_klima"
+Documentation = "https://github.com/macentr/bot_klima#readme"
+Repository = "https://github.com/macentr/bot_klima.git"
+Issues = "https://github.com/macentr/bot_klima/issues"
 
 [tool.ruff]
 line-length = 100

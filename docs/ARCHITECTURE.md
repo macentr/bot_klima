@@ -210,17 +210,17 @@ db/
 
 **Компоненты:**
 - `UnitOfWork` - контекст-менеджер для транзакций
-- `EventRepository` - CRUD события + участие
+- `EventRepository` - CRUD события
+- `ParticipationRepository` - управление участием в событиях
 - `RoomRepository` - CRUD комнаты
 - `RoomMemberRepository` - управление членством в комнатах
 - `UserRepository` - профили пользователей
-- `ParticipationRepository` - состояние участия в событиях
 
 **Пример использования:**
 ```python
 async with uow:
     events = EventRepository(uow.session)
-    room = await events.require(event_id)
+    event = await events.require(event_id)
     # Changes auto-flush to DB
 # On __aexit__: auto-commit or rollback
 ```
@@ -228,16 +228,19 @@ async with uow:
 ### 3. Services Layer (`app/services/`)
 
 **Содержит бизнес-логику:**
-- `EventService` - создание событий, управление участниками
-- `RoomService` - создание/удаление комнат, управление членством
+- `EventService` - создание событий, управление участниками, закрытие событий
+- `RoomService` - создание/удаление комнат, управление членством, инвайт-коды
+- `UserService` - управление профилями, статусом отпуска
 - `AccessControl` - ролевые проверки и авторизация
 - `NotificationService` - отправка Telegram обновлений
+- `AdminService` - административные функции (выдача/отзыв прав админа)
 
 **Характеристики:**
 - НЕ содержат Telegram-специфичный код
 - Оркестрируют работу repositories
 - Проверяют инварианты и бизнес-правила
 - Транзакционны (работают с UoW)
+- Реализуют защиту от спама (cooldown на создание событий)
 
 **Пример:**
 ```python
@@ -279,19 +282,27 @@ handlers/
 ```
 
 **Командные handlers:**
-- `/start` - инициализация user'а
+- `/start` - инициализация user'а, отображение главного меню
 - `/rooms` - список комнат с inline buttons
-- `/events <room_id>` - список событий в комнате
+- `/create_room <name>` - создание новой комнаты
+- `/join_room <invite_code>` - присоединение по инвайт-коду
+- `/delete_room <room_id>` - удаление комнаты (только owner)
+- `/events` - список событий в выбранной комнате
+- `/create_event <type> [minutes]` - создание события
 - `/status_on` - включить vacation mode
 - `/status_off` - выключить vacation mode
+- `/admin_grant <user_id>` - выдать админ-права (только для админов)
+- `/admin_revoke <user_id>` - забрать админ-права (только для админов)
 
 **Callback handlers:**
 - Обработка нажатий на inline buttons
-- State transitions (FSM для UX flow)
+- Управление участием в событиях (accept/decline/later)
+- Навигация по меню и комнатам
 - Обновление списков (refresh on button press)
 
 **Middleware:**
 - `UnitOfWorkMiddleware` - создает UoW и инъектирует в data
+- `AdminMiddleware` - проверка прав админа для admin-команд
 
 ### 5. Database Layer (`app/repositories/db/`)
 
@@ -300,20 +311,25 @@ handlers/
 ```python
 # UserModel
 id: BigInteger (Telegram ID, PK)
-username: str
+username: str | null
 display_name: str
 global_status: Enum(UserGlobalStatus)
-vacation_until: DateTime
+vacation_until: DateTime (nullable)
+is_admin: bool (default: false)
+last_menu_message_id: BigInteger (nullable)
+last_invite_message_id: BigInteger (nullable)
 
 # RoomModel
 id: UUID (PK)
 name: str
+invite_code: str (unique, nullable)
+open_event_id: UUID (FK Event, nullable)
 owner_id: BigInteger (FK User)
 state: Enum(RoomState)
 
 # RoomMemberModel
-room_id: UUID (FK)
-user_id: BigInteger (FK)
+room_id: UUID (FK, PK)
+user_id: BigInteger (FK, PK)
 role: Enum(RoomRole)
 # Constraint: один OWNER на комнату (partial unique index)
 
@@ -321,16 +337,19 @@ role: Enum(RoomRole)
 id: UUID (PK)
 room_id: UUID (FK)
 creator_id: BigInteger (FK User)
-type: Enum(EventType)
-state: Enum(EventState)
+type: Enum(EventType)  # SMOKE | COFFEE | WALK | CUSTOM
+state: Enum(EventState)  # CREATED | OPEN | CLOSED
+custom_description: str (nullable)
 created_at: DateTime
 close_at: DateTime (nullable)
 creator_message_id: BigInteger (nullable)
+# Constraint: одно OPEN событие на комнату (partial unique index)
 
 # ParticipationModel
-user_id: BigInteger (FK)
-event_id: UUID (FK)
-state: Enum(ParticipationState)
+event_id: UUID (FK, PK)
+user_id: BigInteger (FK, PK)
+state: Enum(ParticipationState)  # ACCEPTED | DECLINED | LATER | VACATION
+note: text (nullable)
 ```
 
 **Session management:**
@@ -801,29 +820,114 @@ services:
 
 ## Рекомендации
 
+### Текущее состояние (Январь 2026)
+
+Проект находится в **стадии активной разработки**:
+- ✅ Основная функциональность реализована
+- ✅ Система инвайт-кодов для комнат
+- ✅ Поддержка кастомных событий
+- ✅ Админ-панель
+- ✅ Умная очистка служебных сообщений
+- ✅ 8 миграций базы данных применены
+- ⚠️ Отсутствуют тесты
+- ⚠️ Минимальный error handling
+- ⚠️ Нет мониторинга
+
 ### Short term (1-2 недели)
 
-1. ✅ Добавить exception handler в Dispatcher
+**Критичные улучшения:**
+1. ✅ Добавить global exception handler в Dispatcher
 2. ✅ Batch create participations (исправить race condition)
 3. ✅ Добавить structured logging (structlog)
-4. ✅ Добавить unit tests с pytest
-5. ✅ Документировать callback schemas
+4. 🔴 Написать unit tests для сервисов (pytest)
+5. 🔴 Добавить integration tests для handlers
+6. ✅ Документировать callback schemas
+
+**Code quality:**
+- Включить pre-commit hooks (ruff, pyright)
+- Добавить coverage tracking (минимум 70%)
+- Написать docstrings для публичных методов
 
 ### Medium term (1-2 месяца)
 
-1. 📝 Реализовать idempotency protection
-2. 🔒 Добавить rate limiting
+**Надежность:**
+1. 📝 Реализовать idempotency protection для событий
+2. 🔒 Добавить rate limiting на команды
 3. 📊 Prometheus metrics для основных операций
-4. 📋 Таблица для tracking request flow (request_id)
-5. 🗄️ Optimize N+1 queries
+4. 📋 Request ID tracking для debugging
+5. 🗄️ Optimize N+1 queries (batch fetching)
+
+**Функциональность:**
+- Уведомления о начале/закрытии событий
+- Экспорт статистики событий
+- Архивирование старых комнат
+- Поддержка временных зон
 
 ### Long term (3+ месяца)
 
+**Production-ready:**
 1. 🎯 Migration на webhook mode (вместо polling)
-2. 📈 OpenTelemetry instrumentation
-3. 🧪 E2E tests (integration tests with real bot)
-4. 📦 Кэширование (Redis for user state cache)
-5. 🚀 Database query optimization (indices, denormalization)
+2. 📈 OpenTelemetry distributed tracing
+3. 🧪 E2E tests с реальным Telegram API
+4. 📦 Redis кэширование для user profiles
+5. 🚀 Database query optimization (materialized views)
+
+**Масштабирование:**
+- Horizontal scaling (multiple bot replicas)
+- Background job queue (Celery/RQ)
+- CDN для медиа-файлов
+- Sharding базы данных
+
+---
+
+## Приложения
+
+### Список основных файлов
+
+**Конфигурация:**
+- `pyproject.toml` - зависимости, метаданные
+- `alembic.ini` - настройки миграций
+- `docker-compose.yml` - оркестрация контейнеров
+- `Dockerfile` - образ приложения
+- `.env` - переменные окружения (не в git)
+
+**Точки входа:**
+- `app/bot.py` - main polling process
+- `app/worker.py` - background event closer
+- `app/config.py` - settings validation
+- `app/di.py` - dependency injection container
+
+**Бизнес-логика:**
+- `app/services/events.py` - управление событиями
+- `app/services/rooms.py` - управление комнатами
+- `app/services/users.py` - управление пользователями
+- `app/services/access.py` - контроль доступа
+- `app/services/admin.py` - административные функции
+- `app/services/notifications.py` - Telegram уведомления
+
+**Данные:**
+- `app/repositories/db/models.py` - ORM модели
+- `app/repositories/events.py` - data access для событий
+- `app/repositories/rooms.py` - data access для комнат
+- `app/repositories/users.py` - data access для пользователей
+- `app/repositories/uow.py` - Unit of Work pattern
+
+**Telegram UI:**
+- `app/handlers/commands/*.py` - command handlers
+- `app/handlers/callbacks/*.py` - callback handlers
+- `app/ui/keyboards.py` - inline клавиатуры
+- `app/ui/messages.py` - шаблоны сообщений
+
+### Миграции базы данных (в порядке применения)
+
+1. `0001_initial.py` - создание базовых таблиц
+2. `0002_add_creator_message_id.py` - ID сообщения создателя события
+3. `0003_add_invite_code.py` - система инвайт-кодов
+4. `0004_add_open_event_id.py` - связь комнаты с открытым событием
+5. `0005_restore_owner_roles.py` - исправление ролей владельцев
+6. `0006_add_user_last_messages.py` - хранение ID последних сообщений
+7. `0007_add_user_is_admin.py` - флаг администратора
+8. `0008_add_custom_event_type.py` - поддержка кастомных событий
 
 ---
 

@@ -5,11 +5,14 @@ Production-ready Telegram bot для синхронизации краткоср
 ## Возможности
 
 - 👥 **Комнаты (Room)** - группы сотрудников с ролевой моделью (Owner, Admin, Member)
-- 🎯 **События** - краткосрочные активности (smoke breaks, coffee, walk, custom)
+- 🔗 **Инвайт-коды** - простое присоединение к комнатам по уникальному коду
+- 🎯 **События** - краткосрочные активности (smoke, coffee, walk, custom с описанием)
 - 📱 **Участие** - статусы участников (accepted, declined, later, vacation)
 - 🌴 **Отпуск** - управление статусом "в отпуске"
 - ⏰ **Автозакрытие** - события автоматически закрываются по таймауту
 - 📬 **Уведомления** - синхронизированные обновления для всех участников
+- 🔐 **Админ-панель** - специальные команды для администраторов бота
+- 🧹 **Умные сообщения** - автоматическая очистка меню и служебных сообщений
 
 ## Требования
 
@@ -24,7 +27,7 @@ Production-ready Telegram bot для синхронизации краткоср
 ### 1. Клонирование и подготовка
 
 ```bash
-git clone https://github.com/yourusername/bot_klima.git
+git clone https://github.com/macentr/bot_klima.git
 cd bot_klima
 cp env.example .env
 ```
@@ -147,45 +150,57 @@ bot_klima/
 ## Команды Telegram
 
 ### Управление профилем
-- `/start` - инициализация бота
-- `/status_on` - включить отпуск
+- `/start` - инициализация бота и отображение главного меню
+- `/status_on` - включить отпуск (vacation mode)
 - `/status_off` - выключить отпуск
 
 ### Комнаты
-- `/rooms` - список комнат
-- `/create_room <name>` - создать комнату
-- `/join_room <room_id>` - присоединиться к комнате
+- `/rooms` - список комнат и меню управления
+- `/create_room <name>` - создать новую комнату (вы станете Owner)
+- `/join_room <invite_code>` - присоединиться к комнате по инвайт-коду
+- `/delete_room <room_id>` - удалить комнату (только для владельца)
 
 ### События
-- `/events` - список событий в комнате
+- `/events` - список событий в выбранной комнате
 - `/create_event <type> [minutes]` - создать событие
-  - Types: smoke, coffee, walk, custom
+  - Types: `smoke`, `coffee`, `walk`, `custom:<описание>`
   - Example: `/create_event smoke 15`
+  - Example: `/create_event custom:Обед 30`
+  
+### Администрирование (только для админов бота)
+- `/admin_grant <user_id>` - выдать пользователю админ-права
+- `/admin_revoke <user_id>` - забрать админ-права
 
 ## Database Models
 
 ### User
 ```sql
 id: int (Telegram ID, PK)
-username: str
+username: str | null
 display_name: str
 global_status: ACTIVE | VACATION | DISABLED
 vacation_until: datetime (nullable)
+is_admin: bool (default: false)
+last_menu_message_id: int (nullable) -- для умной очистки меню
+last_invite_message_id: int (nullable) -- для умной очистки инвайтов
 ```
 
 ### Room
 ```sql
 id: UUID (PK)
 name: str
+invite_code: str (unique, nullable) -- уникальный код для присоединения
+open_event_id: UUID (FK Event, nullable) -- текущее открытое событие
 owner_id: int (FK User)
 state: CREATED | ACTIVE | ARCHIVED
 ```
 
 ### RoomMember
 ```sql
-room_id: UUID (FK)
-user_id: int (FK)
+room_id: UUID (FK, PK)
+user_id: int (FK, PK)
 role: OWNER | ADMIN | MEMBER
+-- Constraint: только один OWNER на комнату
 ```
 
 ### Event
@@ -195,27 +210,42 @@ room_id: UUID (FK)
 creator_id: int (FK User)
 type: SMOKE | COFFEE | WALK | CUSTOM
 state: CREATED | OPEN | CLOSED
+custom_description: str (nullable) -- для custom событий
 created_at: datetime
 close_at: datetime (nullable)
+creator_message_id: int (nullable) -- ID сообщения создателя для обновления
+-- Constraint: только одно OPEN событие на комнату
 ```
 
 ### Participation
 ```sql
-user_id: int (FK)
-event_id: UUID (FK)
-state: PENDING | ACCEPTED | DECLINED | LATER | VACATION
+event_id: UUID (FK, PK)
+user_id: int (FK, PK)
+state: ACCEPTED | DECLINED | LATER | VACATION
+note: text (nullable)
+-- Constraint: уникальное участие пользователя в событии
 ```
+
+## Миграции базы данных
+
+Проект использует Alembic для управления схемой БД. Последние миграции:
+- `0008_add_custom_event_type` - добавление поддержки кастомных событий
+- `0007_add_user_is_admin` - флаг админа для пользователей
+- `0006_add_user_last_messages` - хранение ID последних сообщений для очистки
+- `0005_restore_owner_roles` - исправление ролей владельцев комнат
+- `0004_add_open_event_id` - связь комнаты с открытым событием
+- `0003_add_invite_code` - система инвайт-кодов
 
 ## Разработка
 
 ### Запуск тестов
 ```bash
-pytest tests/ -v
+pytest tests/ -v --cov=app
 ```
 
 ### Код стиль (Ruff)
 ```bash
-ruff check app/
+ruff check app/ --fix
 ruff format app/
 ```
 
@@ -234,20 +264,34 @@ alembic upgrade head
 
 # Откатить на одну версию
 alembic downgrade -1
+
+# Посмотреть текущую версию
+alembic current
+
+# История миграций
+alembic history
 ```
 
 ## Развертывание
 
 ### Production Docker
 ```bash
-docker-compose -f docker-compose.yml up -d
+# Старт всех сервисов (db, bot, worker)
+docker-compose up -d
+
+# Проверка логов
+docker-compose logs -f bot
+docker-compose logs -f worker
+
+# Остановка
+docker-compose down
 ```
 
 ### Environment variables
 Все чувствительные данные должны быть в `.env` (не коммитить в git):
 - `BOT_TOKEN` - токен от @BotFather
 - `DATABASE_URL` - полный URL подключения к PostgreSQL
-- `POSTGRES_PASSWORD` - пароль БД
+- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` - параметры БД
 - `EVENT_CLOSER_INTERVAL_SECONDS` - интервал polling'а воркера (def: 10)
 
 ## Производительность
@@ -255,12 +299,30 @@ docker-compose -f docker-compose.yml up -d
 - ✅ Async-only (no blocking operations)
 - ✅ Connection pooling (SQLAlchemy)
 - ✅ Batch operations для создания участников
-- ✅ Indexed queries для частых операций (room owner, event state)
+- ✅ Indexed queries для частых операций (room owner, event state, event close_at)
+- ✅ Partial unique indexes (только одно OPEN событие, только один OWNER)
+- ✅ Database constraints для целостности данных
 - ⚠️ Polling mode (можно оптимизировать на long-polling или webhooks)
+
+## Безопасность
+
+- 🔒 Ролевая модель доступа (Owner → Admin → Member)
+- 🔒 Проверка прав перед операциями (AccessControl service)
+- 🔒 Уникальные инвайт-коды для присоединения к комнатам
+- 🔒 Защита от частого создания событий (cooldown 5 минут)
+- 🔒 Изоляция команд админа (is_admin flag)
 
 ## Проблемы и TODO
 
-Смотрите [ARCHITECTURE.md](./docs/ARCHITECTURE.md) для подробного анализа слабых мест.
+Смотрите [ARCHITECTURE.md](./docs/ARCHITECTURE.md) для подробного анализа архитектуры и слабых мест.
+
+## Документация
+
+- [README.md](README.md) - основная документация и quick start
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - детальный архитектурный анализ
+- [DEVELOPMENT.md](DEVELOPMENT.md) - руководство по разработке
+- [CONTRIBUTING.md](CONTRIBUTING.md) - гайд для контрибьюторов
+- [CHANGELOG.md](CHANGELOG.md) - история изменений
 
 ## Contributing
 
@@ -280,7 +342,7 @@ docker-compose -f docker-compose.yml up -d
 
 ## Поддержка
 
-Нашли баг? [Откройте issue](https://github.com/yourusername/bot_klima/issues)
+Нашли баг? [Откройте issue](https://github.com/macentr/bot_klima/issues)
 
 ---
 
